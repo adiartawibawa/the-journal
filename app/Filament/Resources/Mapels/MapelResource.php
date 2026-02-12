@@ -26,13 +26,13 @@ class MapelResource extends Resource
 {
     protected static ?string $model = Mapel::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentDuplicate;
 
     protected static ?string $recordTitleAttribute = 'nama';
 
     protected static string|UnitEnum|null $navigationGroup = 'Data Utama';
 
-    protected static ?string $navigationLabel = 'Mapel';
+    protected static ?string $navigationLabel = 'Mata Pelajaran';
 
     protected static ?string $pluralLabel = 'Mata Pelajaran';
 

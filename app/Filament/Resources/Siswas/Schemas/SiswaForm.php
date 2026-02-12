@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
@@ -22,29 +23,79 @@ class SiswaForm
                     ->description('Informasi akun untuk login')
                     ->collapsible()
                     ->schema([
-                        TextInput::make('user.name')
-                            ->label('Nama Lengkap')
-                            ->required()
-                            ->maxLength(255),
+                        Group::make()
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Nama Lengkap')
+                                    ->required()
+                                    ->maxLength(255),
 
-                        TextInput::make('user.email')
-                            ->label('Email')
-                            ->email()
-                            ->required()
-                            ->unique(User::class, 'email', ignoreRecord: true)
-                            ->maxLength(255),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required()
+                                    ->unique(
+                                        User::class,
+                                        'email',
+                                        ignoreRecord: true
+                                    )
+                                    ->maxLength(255),
 
-                        TextInput::make('password')
-                            ->label('Password')
-                            ->password()
-                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
-                            ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create')
-                            ->maxLength(255)
-                            ->helperText(
-                                fn(string $context): string =>
-                                $context === 'create' ? 'Password untuk login' : 'Kosongkan jika tidak ingin mengubah password'
-                            ),
+                                TextInput::make('password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->dehydrateStateUsing(
+                                        fn($state) =>
+                                        filled($state) ? Hash::make($state) : null
+                                    )
+                                    ->dehydrated(fn($state) => filled($state))
+                                    ->required(fn($operation) => $operation === 'create')
+                                    ->maxLength(255)
+                                    ->helperText(
+                                        fn($operation) =>
+                                        $operation === 'create'
+                                            ? 'Password untuk login'
+                                            : 'Kosongkan jika tidak ingin mengubah password'
+                                    ),
+                            ])->hidden(fn(string $operation): bool => $operation === 'edit'),
+
+                        Group::make()
+                            ->relationship('user')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Nama Lengkap')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required()
+                                    ->unique(
+                                        User::class,
+                                        'email',
+                                        ignoreRecord: true
+                                    )
+                                    ->maxLength(255),
+
+                                TextInput::make('password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->dehydrateStateUsing(
+                                        fn($state) =>
+                                        filled($state) ? Hash::make($state) : null
+                                    )
+                                    ->dehydrated(fn($state) => filled($state))
+                                    ->required(fn($operation) => $operation === 'create')
+                                    ->maxLength(255)
+                                    ->helperText(
+                                        fn($operation) =>
+                                        $operation === 'create'
+                                            ? 'Password untuk login'
+                                            : 'Kosongkan jika tidak ingin mengubah password'
+                                    ),
+                            ])
+                            ->hidden(fn(string $operation): bool => $operation === 'create')
                     ])->columnSpanFull(),
 
                 Section::make('Data Pribadi Siswa')
@@ -90,8 +141,11 @@ class SiswaForm
 
                         TextInput::make('no_telp_orang_tua')
                             ->label('No. Telepon Orang Tua')
+                            ->placeholder('xxxx-xxxx-xxxx')
+                            ->mask('9999-9999-9999')
                             ->tel()
-                            ->maxLength(20),
+                            ->telRegex('/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\.\/0-9]*$/')
+                            ->maxLength(12),
                     ])
                     ->columnSpanFull(),
 

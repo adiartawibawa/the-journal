@@ -19,6 +19,7 @@ class Siswa extends Model
         'pekerjaan_orang_tua',
         'alamat_orang_tua',
         'no_telp_orang_tua',
+        'tanggal_lahir',
         'is_active'
     ];
 
@@ -44,5 +45,11 @@ class Siswa extends Model
     public function riwayatKelas()
     {
         return $this->hasMany(KelasSiswa::class, 'user_id', 'user_id');
+    }
+
+    // Assesor
+    public function getNameAttribute()
+    {
+        return $this->user?->name;
     }
 }

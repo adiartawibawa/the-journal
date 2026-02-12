@@ -33,6 +33,7 @@ class SiswasTable
                     ->sortable(),
 
                 TextColumn::make('tanggal_lahir')
+                    ->date()
                     ->searchable(),
 
                 TextColumn::make('tempat_lahir')
@@ -55,12 +56,6 @@ class SiswasTable
 
                 IconColumn::make('is_active')
                     ->label('Status Siswa')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle'),
-
-                IconColumn::make('user.is_active')
-                    ->label('Status Akun')
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle'),

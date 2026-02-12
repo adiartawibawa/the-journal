@@ -14,7 +14,7 @@ class GurusTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('user.name')
+            ->recordTitleAttribute('nuptk')
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Nama Guru')

@@ -6,6 +6,7 @@ use App\Models\User;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
@@ -20,30 +21,81 @@ class GuruForm
                     ->description('Informasi akun untuk login')
                     ->collapsible()
                     ->schema([
-                        TextInput::make('user.name')
-                            ->label('Nama Lengkap')
-                            ->required()
-                            ->maxLength(255),
+                        Group::make()
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Nama Lengkap')
+                                    ->required()
+                                    ->maxLength(255),
 
-                        TextInput::make('user.email')
-                            ->label('Email')
-                            ->email()
-                            ->required()
-                            ->unique(User::class, 'email', ignoreRecord: true)
-                            ->maxLength(255),
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required()
+                                    ->unique(
+                                        User::class,
+                                        'email',
+                                        ignoreRecord: true
+                                    )
+                                    ->maxLength(255),
 
-                        TextInput::make('password')
-                            ->label('Password')
-                            ->password()
-                            ->dehydrateStateUsing(fn($state) => Hash::make($state))
-                            ->dehydrated(fn($state) => filled($state))
-                            ->required(fn(string $context): bool => $context === 'create')
-                            ->maxLength(255)
-                            ->helperText(
-                                fn(string $context): string =>
-                                $context === 'create' ? 'Password untuk login' : 'Kosongkan jika tidak ingin mengubah password'
-                            ),
-                    ])->columnSpanFull(),
+                                TextInput::make('password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->dehydrateStateUsing(
+                                        fn($state) =>
+                                        filled($state) ? Hash::make($state) : null
+                                    )
+                                    ->dehydrated(fn($state) => filled($state))
+                                    ->required(fn($operation) => $operation === 'create')
+                                    ->maxLength(255)
+                                    ->helperText(
+                                        fn($operation) =>
+                                        $operation === 'create'
+                                            ? 'Password untuk login'
+                                            : 'Kosongkan jika tidak ingin mengubah password'
+                                    ),
+                            ])->hidden(fn(string $operation): bool => $operation === 'edit'),
+
+                        Group::make()
+                            ->relationship('user')
+                            ->schema([
+                                TextInput::make('name')
+                                    ->label('Nama Lengkap')
+                                    ->required()
+                                    ->maxLength(255),
+
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email()
+                                    ->required()
+                                    ->unique(
+                                        User::class,
+                                        'email',
+                                        ignoreRecord: true
+                                    )
+                                    ->maxLength(255),
+
+                                TextInput::make('password')
+                                    ->label('Password')
+                                    ->password()
+                                    ->dehydrateStateUsing(
+                                        fn($state) =>
+                                        filled($state) ? Hash::make($state) : null
+                                    )
+                                    ->dehydrated(fn($state) => filled($state))
+                                    ->required(fn($operation) => $operation === 'create')
+                                    ->maxLength(255)
+                                    ->helperText(
+                                        fn($operation) =>
+                                        $operation === 'create'
+                                            ? 'Password untuk login'
+                                            : 'Kosongkan jika tidak ingin mengubah password'
+                                    ),
+                            ])
+                            ->hidden(fn(string $operation): bool => $operation === 'create')
+                    ])
+                    ->columnSpanFull(),
 
                 Section::make('Data Profesional')
                     ->description('Informasi Profesional guru')
@@ -53,8 +105,7 @@ class GuruForm
                             ->label('NUPTK')
                             ->required()
                             ->unique(ignoreRecord: true)
-                            ->length(16)
-                            ->numeric(),
+                            ->length(16),
 
                         Select::make('status_kepegawaian')
                             ->options([

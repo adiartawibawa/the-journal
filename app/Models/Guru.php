@@ -18,6 +18,7 @@ class Guru extends Model
         'status_kepegawaian',
         'bidang_studi',
         'golongan',
+        'tanggal_masuk',
         'pendidikan_terakhir'
     ];
 
@@ -45,5 +46,11 @@ class Guru extends Model
     public function tugasMengajar(): HasMany
     {
         return $this->hasMany(GuruMengajar::class, 'user_id', 'user_id');
+    }
+
+    // assesor
+    public function getNameAttribute()
+    {
+        return $this->user?->name;
     }
 }

@@ -13,6 +13,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use UnitEnum;
 
 class GuruResource extends Resource
@@ -21,7 +23,7 @@ class GuruResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?string $recordTitleAttribute = 'user.name';
+    protected static ?string $recordTitleAttribute = 'name';
 
     protected static string|UnitEnum|null $navigationGroup = 'Data Utama';
 
@@ -33,6 +35,7 @@ class GuruResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        // dd($schema);
         return GuruForm::configure($schema);
     }
 

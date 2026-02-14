@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements HasMedia
@@ -55,6 +56,79 @@ class User extends Authenticatable implements HasMedia
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Register media collections
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile() // Hanya boleh 1 file per user
+            ->acceptsMimeTypes(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
+            ->registerMediaConversions(function (Media $media = null) {
+                $this->addMediaConversion('thumb')
+                    ->width(100)
+                    ->height(100)
+                    ->sharpen(10);
+
+                $this->addMediaConversion('medium')
+                    ->width(300)
+                    ->height(300)
+                    ->sharpen(5);
+
+                $this->addMediaConversion('large')
+                    ->width(800)
+                    ->height(800)
+                    ->sharpen(0);
+            });
+    }
+
+    // Helper method untuk mendapatkan URL avatar
+    public function getAvatarUrlAttribute(): ?string
+    {
+        $media = $this->getFirstMedia('avatar');
+
+        if ($media) {
+            return $media->getUrl();
+        }
+
+        // Return default avatar based on email/name
+        return $this->getDefaultAvatarUrl();
+    }
+
+    // Helper method untuk mendapatkan thumbnail avatar
+    public function getAvatarThumbUrlAttribute(): ?string
+    {
+        $media = $this->getFirstMedia('avatar');
+
+        if ($media && $media->hasGeneratedConversion('thumb')) {
+            return $media->getUrl('thumb');
+        }
+
+        return $this->getAvatarUrlAttribute();
+    }
+
+    // Helper method untuk mendapatkan avatar ukuran medium
+    public function getAvatarMediumUrlAttribute(): ?string
+    {
+        $media = $this->getFirstMedia('avatar');
+
+        if ($media && $media->hasGeneratedConversion('medium')) {
+            return $media->getUrl('medium');
+        }
+
+        return $this->getAvatarUrlAttribute();
+    }
+
+    // Default avatar menggunakan UI Avatars or Gravatar
+    protected function getDefaultAvatarUrl(): string
+    {
+        // // Menggunakan UI Avatars (https://ui-avatars.com)
+        // $name = urlencode($this->name);
+        // return "https://ui-avatars.com/api/?name={$name}&color=7F9CF5&background=EBF4FF&size=256&bold=true";
+
+        // Alternatif menggunakan Gravatar
+        $hash = md5(strtolower(trim($this->email)));
+        return "https://www.gravatar.com/avatar/{$hash}?s=256&d=mp";
     }
 
     // User sebagai guru

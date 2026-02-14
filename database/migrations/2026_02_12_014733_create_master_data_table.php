@@ -28,7 +28,7 @@ return new class extends Migration
             $table->string('status_kepegawaian')->nullable(); // PNS, PPPK, Honor
             $table->date('tanggal_masuk')->nullable();
             $table->string('bidang_studi')->nullable();
-            $table->enum('golongan', ['I', 'II', 'III', 'IV'])->nullable();
+            $table->enum('golongan', ['I/a', 'I/b', 'I/c', 'I/d', 'II/a', 'II/b', 'II/c', 'II/d', 'III/a', 'III/b', 'III/c', 'III/d', 'IV/a', 'IV/b', 'IV/c', 'IV/d', 'IV/e'])->nullable();
             $table->string('pendidikan_terakhir')->nullable();
             $table->timestamps();
         });

@@ -103,7 +103,7 @@ class GuruForm
                     ->schema([
                         TextInput::make('nuptk')
                             ->label('NUPTK')
-                            ->required()
+                            // ->required()
                             ->unique(ignoreRecord: true)
                             ->length(16),
 
@@ -119,7 +119,15 @@ class GuruForm
                             ->searchable(),
 
                         Select::make('golongan')
-                            ->options(['I' => 'I', 'II' => 'II', 'III' => 'III', 'IV' => 'IV'])
+                            ->options(collect([
+                                'I' => ['a', 'b', 'c', 'd'],
+                                'II' => ['a', 'b', 'c', 'd'],
+                                'III' => ['a', 'b', 'c', 'd'],
+                                'IV' => ['a', 'b', 'c', 'd', 'e'],
+                            ])->flatMap(
+                                fn($subs, $kelas) =>
+                                collect($subs)->mapWithKeys(fn($s) => ["$kelas/$s" => "$kelas/$s"])
+                            )->toArray())
                             ->default(null),
 
                         DatePicker::make('tanggal_masuk')

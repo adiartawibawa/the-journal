@@ -18,7 +18,7 @@ class GuruMengajarsTable
     {
         return $table
             ->columns([
-                TextColumn::make('guru.name')
+                TextColumn::make('guru.user.name')
                     ->label('Nama Guru')
                     ->searchable()
                     ->sortable(),

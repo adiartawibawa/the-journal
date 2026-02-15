@@ -19,14 +19,15 @@ class GuruMengajarForm
                 Section::make('Guru Mengajar')
                     ->description('')
                     ->schema([
-                        Select::make('user_id')
+                        Select::make('guru_id')
                             ->label('Guru')
                             ->options(function () {
                                 return Guru::with('user')
                                     ->get()
-                                    ->pluck('name', 'user_id')
-                                    ->map(function ($name, $userId) {
-                                        return $name ?: "Guru ID: {$userId}";
+                                    ->mapWithKeys(function ($guru) {
+                                        return [
+                                            $guru->id => $guru->user?->name ?? "Guru ID: {$guru->id}"
+                                        ];
                                     })
                                     ->toArray();
                             })

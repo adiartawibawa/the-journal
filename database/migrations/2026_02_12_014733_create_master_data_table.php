@@ -73,7 +73,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('tahun_ajaran_id')->constrained('tahun_ajarans');
             $table->foreignUuid('kelas_id')->constrained('kelas');
-            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('guru_id')->constrained('gurus')->onDelete('cascade');
             $table->foreignUuid('mapel_id')->constrained('mapels');
             $table->integer('kkm')->default(75);
             $table->integer('jam_per_minggu')->default(2);
@@ -94,8 +94,11 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('tahun_ajaran_id')->constrained('tahun_ajarans');
             $table->foreignUuid('kelas_id')->constrained('kelas');
-            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('siswa_id')->constrained('siswas')->onDelete('cascade');
             $table->enum('status', ['aktif', 'pindah', 'lulus', 'dropout'])->default('aktif');
+            $table->date('tanggal_mulai')->nullable();
+            $table->date('tanggal_selesai')->nullable();
+            $table->text('keterangan')->nullable();
             $table->timestamps();
         });
     }

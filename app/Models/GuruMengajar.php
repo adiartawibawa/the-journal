@@ -24,7 +24,7 @@ class GuruMengajar extends Pivot
 
     public function guru(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(Guru::class, 'guru_id');
     }
 
     public function tahunAjaran(): BelongsTo

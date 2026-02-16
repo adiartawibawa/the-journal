@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 class TahunAjaran extends Model
@@ -25,6 +26,14 @@ class TahunAjaran extends Model
             'tanggal_akhir' => 'date',
             'is_active' => 'boolean'
         ];
+    }
+
+    /**
+     * Relasi ke kelas_siswa
+     */
+    public function kelasSiswa(): HasMany
+    {
+        return $this->hasMany(KelasSiswa::class, 'tahun_ajaran_id');
     }
 
     // Method untuk mengaktifkan tahun ajaran ini dan menonaktifkan lainnya

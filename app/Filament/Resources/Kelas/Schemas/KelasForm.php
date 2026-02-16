@@ -17,15 +17,15 @@ class KelasForm
                 TextInput::make('kode')
                     ->label('Kode Kelas')
                     ->required()
-                    ->maxLength(10)
+                    ->maxLength(50)
                     ->unique(ignoreRecord: true)
-                    ->placeholder('Contoh: X-IPA-1'),
+                    ->placeholder('Contoh: 2025/2026-X-2'),
 
                 TextInput::make('nama')
                     ->label('Nama Kelas')
                     ->required()
                     ->maxLength(50)
-                    ->placeholder('Contoh: X IPA 1'),
+                    ->placeholder('Contoh: X - 2'),
 
                 Select::make('tingkat')
                     ->options([

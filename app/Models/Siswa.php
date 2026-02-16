@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Siswa extends Model
 {
@@ -42,9 +43,51 @@ class Siswa extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function riwayatKelas()
+    /**
+     * Relasi ke riwayat kelas
+     */
+    public function kelasSiswa(): HasMany
     {
-        return $this->hasMany(KelasSiswa::class, 'user_id', 'user_id');
+        return $this->hasMany(KelasSiswa::class, 'siswa_id');
+    }
+
+    /**
+     * Mendapatkan kelas aktif siswa untuk tahun ajaran tertentu
+     */
+    public function getKelasAktif($tahunAjaranId = null)
+    {
+        $query = $this->kelasSiswa()
+            ->with('kelas')
+            ->where('status', 'aktif');
+
+        if ($tahunAjaranId) {
+            $query->where('tahun_ajaran_id', $tahunAjaranId);
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Mendapatkan histori kelas siswa
+     */
+    public function getHistoriKelasAttribute()
+    {
+        return $this->kelasSiswa()
+            ->with(['kelas', 'tahunAjaran'])
+            ->orderBy('tanggal_mulai', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'tahun_ajaran' => $item->tahunAjaran?->nama,
+                    'kelas' => $item->kelas?->nama,
+                    'tingkat' => $item->kelas?->tingkat,
+                    'jurusan' => $item->kelas?->jurusan,
+                    'status' => $item->status,
+                    'periode' => $item->periode,
+                    'tanggal_mulai' => $item->tanggal_mulai?->format('d/m/Y'),
+                    'tanggal_selesai' => $item->tanggal_selesai?->format('d/m/Y'),
+                ];
+            });
     }
 
     // Assesor

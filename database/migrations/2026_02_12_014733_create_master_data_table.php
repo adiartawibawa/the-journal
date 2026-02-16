@@ -59,7 +59,7 @@ return new class extends Migration
 
         Schema::create('kelas', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('kode', 10)->unique();
+            $table->string('kode', 50)->unique();
             $table->string('nama');
             $table->smallInteger('tingkat');
             $table->string('jurusan')->nullable();

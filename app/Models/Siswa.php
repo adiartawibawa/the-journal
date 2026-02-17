@@ -11,6 +11,8 @@ class Siswa extends Model
 {
     use HasUuids;
 
+    protected $table = 'siswas';
+
     protected $fillable = [
         'user_id',
         'nisn',
@@ -94,5 +96,19 @@ class Siswa extends Model
     public function getNameAttribute()
     {
         return $this->user?->name;
+    }
+
+    // Mendapatkan Tahun Masuk secara dinamis
+    public function getTahunMasukAttribute()
+    {
+        $awal = $this->kelasSiswa()->with('tahunAjaran')->orderBy('tanggal_mulai', 'asc')->first();
+        return $awal ? $awal->tahunAjaran->nama : null;
+    }
+
+    // Mendapatkan Tahun Lulus secara dinamis
+    public function getTahunLulusAttribute()
+    {
+        $akhir = $this->kelasSiswa()->with('tahunAjaran')->where('status', 'lulus')->first();
+        return $akhir ? $akhir->tahunAjaran->nama : null;
     }
 }

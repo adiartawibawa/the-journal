@@ -7,6 +7,7 @@ use App\Filament\Resources\KelasSiswas\Pages\EditKelasSiswa;
 use App\Filament\Resources\KelasSiswas\Pages\ListKelasSiswas;
 use App\Filament\Resources\KelasSiswas\Schemas\KelasSiswaForm;
 use App\Filament\Resources\KelasSiswas\Tables\KelasSiswasTable;
+use App\Models\Kelas;
 use App\Models\KelasSiswa;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -26,9 +27,13 @@ class KelasSiswaResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Penugasan';
 
-    protected static ?string $navigationLabel = 'Kelas Siswa';
+    protected static ?string $navigationLabel = 'Siswa Per Kelas';
 
-    protected static ?string $pluralLabel = 'Kelas Siswa';
+    protected static ?string $modelLabel = 'Siswa Kelas';
+
+    protected static ?string $pluralLabel = 'Siswa Per Kelas';
+
+    protected static ?string $slug = 'siswa-per-kelas';
 
     protected static ?int $navigationSort = 2;
 
@@ -56,5 +61,13 @@ class KelasSiswaResource extends Resource
             'create' => CreateKelasSiswa::route('/create'),
             'edit' => EditKelasSiswa::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::query()
+            ->whereHas('tahunAjaran', fn($query) => $query->where('is_active', true))
+            ->aktif()
+            ->count();
     }
 }

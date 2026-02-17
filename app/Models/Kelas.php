@@ -10,6 +10,8 @@ class Kelas extends Model
 {
     use HasUuids;
 
+    protected $table = 'kelas';
+
     protected $fillable = [
         'kode',
         'nama',

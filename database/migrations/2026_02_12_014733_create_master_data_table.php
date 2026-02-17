@@ -25,7 +25,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
             $table->string('nuptk')->unique()->nullable();
-            $table->string('status_kepegawaian')->nullable(); // PNS, PPPK, Honor
+            $table->string('status_kepegawaian')->nullable(); // 'PNS', 'PPPK', 'Guru Honor', 'Staff Honor', 'Kontrak'
             $table->date('tanggal_masuk')->nullable();
             $table->string('bidang_studi')->nullable();
             $table->enum('golongan', ['I/a', 'I/b', 'I/c', 'I/d', 'II/a', 'II/b', 'II/c', 'II/d', 'III/a', 'III/b', 'III/c', 'III/d', 'IV/a', 'IV/b', 'IV/c', 'IV/d', 'IV/e'])->nullable();
@@ -85,7 +85,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('tahun_ajaran_id')->constrained('tahun_ajarans');
             $table->foreignUuid('kelas_id')->constrained('kelas');
-            $table->foreignUuid('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('guru_id')->constrained('gurus')->onDelete('cascade');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -95,10 +95,20 @@ return new class extends Migration
             $table->foreignUuid('tahun_ajaran_id')->constrained('tahun_ajarans');
             $table->foreignUuid('kelas_id')->constrained('kelas');
             $table->foreignUuid('siswa_id')->constrained('siswas')->onDelete('cascade');
-            $table->enum('status', ['aktif', 'pindah', 'lulus', 'dropout'])->default('aktif');
+            $table->enum('status', ['aktif', 'pindah', 'lulus', 'dropout', 'tinggal_kelas'])->default('aktif');
             $table->date('tanggal_mulai')->nullable();
             $table->date('tanggal_selesai')->nullable();
             $table->text('keterangan')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('riwayat_status_siswa', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('siswa_id')->constrained('siswas');
+            $table->string('status_lama');
+            $table->string('status_baru');
+            $table->text('alasan');
+            $table->date('tanggal_perubahan');
             $table->timestamps();
         });
     }
@@ -108,6 +118,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('riwayat_status_siswa');
         Schema::dropIfExists('kelas_siswa');
         Schema::dropIfExists('wali_kelas');
         Schema::dropIfExists('guru_mengajar');

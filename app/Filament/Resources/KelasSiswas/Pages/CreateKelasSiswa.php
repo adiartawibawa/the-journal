@@ -3,31 +3,26 @@
 namespace App\Filament\Resources\KelasSiswas\Pages;
 
 use App\Filament\Resources\KelasSiswas\KelasSiswaResource;
+use App\Models\Kelas;
 use App\Models\KelasSiswa;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateKelasSiswa extends CreateRecord
 {
     protected static string $resource = KelasSiswaResource::class;
 
-    protected function afterCreate(): void
+    protected function handleRecordCreation(array $data): Model
     {
-        $record = $this->record;
+        // Validate kapasitas before creating
+        $kelas = Kelas::find($data['kelas_id']);
+        $currentCount = $kelas->getJumlahSiswaAktifAttribute($data['tahun_ajaran_id']);
 
-        // Cek kapasitas kelas
-        $kelas = $record->kelas;
-        $totalSiswa = KelasSiswa::where('kelas_id', $kelas->id)
-            ->where('tahun_ajaran_id', $record->tahun_ajaran_id)
-            ->where('status', 'aktif')
-            ->count();
-
-        if ($totalSiswa > $kelas->kapasitas) {
-            Notification::make()
-                ->warning()
-                ->title('Perhatian: Kapasitas Kelas Melebihi Batas')
-                ->body("Kelas {$kelas->nama} sekarang memiliki {$totalSiswa} siswa dari kapasitas {$kelas->kapasitas}")
-                ->send();
+        if ($currentCount >= $kelas->kapasitas) {
+            throw new \Exception("Kapasitas kelas {$kelas->nama} sudah penuh. Saat ini terisi {$currentCount} dari {$kelas->kapasitas} siswa.");
         }
+
+        return parent::handleRecordCreation($data);
     }
 }

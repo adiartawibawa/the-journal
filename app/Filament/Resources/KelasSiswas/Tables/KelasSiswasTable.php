@@ -14,12 +14,15 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class KelasSiswasTable
 {
@@ -29,73 +32,104 @@ class KelasSiswasTable
             ->columns([
                 TextColumn::make('siswa.user.name')
                     ->label('Nama Siswa')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('siswa.nisn')
-                    ->label('NISN')
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('siswa.user', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
+                    })
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->join('siswas', 'kelas_siswa.siswa_id', '=', 'siswas.id')
+                            ->join('users', 'siswas.user_id', '=', 'users.id')
+                            ->orderBy('users.name', $direction)
+                            ->select('kelas_siswa.*');
+                    }),
 
                 TextColumn::make('kelas.nama')
                     ->label('Kelas')
-                    ->description(fn($record) => 'Tingkat ' . $record->kelas?->tingkat)
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('kelas.tingkat')
+                    ->label('Tingkat')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn($state) => "Kelas {$state}"),
+
                 TextColumn::make('tahunAjaran.nama')
                     ->label('Tahun Ajaran')
-                    ->badge()
-                    ->color(fn($record) => $record->tahunAjaran?->is_active ? 'success' : 'gray')
-                    ->description(fn($record) => 'Semester ' . $record->tahunAjaran?->semester)
+                    ->searchable()
                     ->sortable(),
 
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
+                    ->formatStateUsing(fn(string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->color(fn(string $state): string => match ($state) {
                         'aktif' => 'success',
                         'pindah' => 'warning',
                         'lulus' => 'info',
                         'dropout' => 'danger',
-                    })
-                    ->icon(fn(string $state): string => match ($state) {
-                        'aktif' => 'heroicon-o-check-circle',
-                        'pindah' => 'heroicon-o-arrows-right-left',
-                        'lulus' => 'heroicon-o-academic-cap',
-                        'dropout' => 'heroicon-o-x-circle',
+                        'tinggal_kelas' => 'gray',
+                        default => 'secondary',
                     }),
 
                 TextColumn::make('periode')
                     ->label('Periode')
-                    ->badge()
-                    ->color('gray'),
+                    ->toggleable(),
+
+                TextColumn::make('tanggal_mulai')
+                    ->label('Tgl Mulai')
+                    ->date('d/m/Y')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('tanggal_selesai')
+                    ->label('Tgl Selesai')
+                    ->date('d/m/Y')
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime('d M Y H:i')
-                    ->sortable()
+                    ->dateTime('d/m/Y H:i')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            // ->groups([
+            //     Group::make('kelas_id')
+            //         ->label('Kelas')
+            //         ->getTitleFromRecordUsing(
+            //             fn($record) =>
+            //             "{$record->kelas->nama} - Tingkat {$record->kelas->tingkat}"
+            //         ),
+            // ])
+            // ->defaultGroup('kelas_id')
             ->filters([
                 SelectFilter::make('tahun_ajaran_id')
                     ->label('Tahun Ajaran')
-                    ->options(TahunAjaran::all()->pluck('nama', 'id'))
-                    ->default(function () {
-                        return TahunAjaran::where('is_active', true)->first()?->id;
-                    }),
+                    ->options(function () {
+                        return TahunAjaran::query()
+                            ->orderBy('tanggal_awal', 'desc')
+                            ->get()
+                            ->mapWithKeys(function ($tahunAjaran) {
+                                $semesterLabel = $tahunAjaran->semester === '1' ? 'Ganjil' : 'Genap';
+                                return [
+                                    $tahunAjaran->id => "{$tahunAjaran->nama} - Semester {$semesterLabel}",
+                                ];
+                            })
+                            ->toArray();
+                    })
+                    ->default(fn() => TahunAjaran::where('is_active', true)->value('id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (filled($data['value'])) {
+                            $query->where('tahun_ajaran_id', $data['value']);
+                        }
+                    })
+                    ->searchable()
+                    ->preload(),
 
                 SelectFilter::make('kelas_id')
                     ->label('Kelas')
-                    ->options(function () {
-                        return Kelas::active()
-                            ->orderBy('tingkat')
-                            ->orderBy('nama')
-                            ->get()
-                            ->mapWithKeys(function ($kelas) {
-                                return [$kelas->id => $kelas->nama . ' (Tkt ' . $kelas->tingkat . ')'];
-                            });
-                    })
-                    ->searchable(),
+                    ->relationship('kelas', 'nama')
+                    ->searchable()
+                    ->preload(),
 
                 SelectFilter::make('status')
                     ->label('Status')
@@ -103,13 +137,9 @@ class KelasSiswasTable
                         'aktif' => 'Aktif',
                         'pindah' => 'Pindah',
                         'lulus' => 'Lulus',
-                        'dropout' => 'Drop Out',
+                        'dropout' => 'Dropout',
+                        'tinggal_kelas' => 'Tinggal Kelas',
                     ]),
-
-                Filter::make('kelas_aktif')
-                    ->label('Kelas Aktif')
-                    ->query(fn(Builder $query): Builder => $query->where('status', 'aktif'))
-                    ->toggle(),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -117,44 +147,164 @@ class KelasSiswasTable
                     ->label('Naik Kelas')
                     ->icon('heroicon-o-arrow-up-circle')
                     ->color('success')
+                    ->visible(fn(KelasSiswa $record): bool => $record->status === 'aktif')
                     ->requiresConfirmation()
                     ->modalHeading('Naik Kelas Siswa')
-                    ->modalDescription('Apakah Anda yakin ingin menaikkan kelas siswa ini?')
+                    ->modalDescription('Pilih tahun ajaran dan kelas tujuan untuk kenaikan kelas siswa ini.')
                     ->form([
-                        Select::make('tahun_ajaran_baru')
+                        Select::make('tahun_ajaran_id')
                             ->label('Tahun Ajaran Baru')
-                            ->options(TahunAjaran::where('is_active', false)
-                                ->orWhere('id', TahunAjaran::where('is_active', true)->first()?->id)
-                                ->orderBy('tanggal_awal', 'desc')
-                                ->get()
-                                ->pluck('nama', 'id'))
+                            ->options(function () {
+                                return TahunAjaran::all()->mapWithKeys(function ($tahunAjaran) {
+                                    $semesterLabel = $tahunAjaran->semester == '1' ? 'Ganjil' : 'Genap';
+                                    return [$tahunAjaran->id => $tahunAjaran->nama . ' - Semester ' . $semesterLabel];
+                                });
+                            })
+                            ->searchable()
                             ->required()
-                            ->searchable(),
+                            ->reactive()
+                            ->afterStateUpdated(fn(callable $set) => $set('kelas_id', null)),
+
+                        Select::make('kelas_id')
+                            ->label('Kelas Tujuan')
+                            ->options(function (callable $get) {
+                                $tahunAjaranId = $get('tahun_ajaran_id');
+                                if (!$tahunAjaranId) {
+                                    return [];
+                                }
+
+                                return Kelas::where('is_active', true)
+                                    ->get()
+                                    ->mapWithKeys(function ($kelas) use ($tahunAjaranId) {
+                                        $kapasitas = $kelas->kapasitas;
+                                        $terisi = $kelas->getJumlahSiswaAktifAttribute($tahunAjaranId);
+
+                                        // Filter hanya kelas yang masih punya kuota
+                                        if ($terisi < $kapasitas) {
+                                            $sisa = $kapasitas - $terisi;
+                                            return [
+                                                $kelas->id => "{$kelas->nama} (Tingkat {$kelas->tingkat}) - Terisi: {$terisi}/{$kapasitas} (Sisa: {$sisa})"
+                                            ];
+                                        }
+
+                                        return [];
+                                    })
+                                    ->toArray();
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText(function (callable $get) {
+                                $kelasId = $get('kelas_id');
+                                if (!$kelasId) {
+                                    return 'Pilih kelas tujuan';
+                                }
+
+                                $kelas = Kelas::find($kelasId);
+                                $tahunAjaranId = $get('tahun_ajaran_id');
+
+                                if ($kelas && $tahunAjaranId) {
+                                    $terisi = $kelas->getJumlahSiswaAktifAttribute($tahunAjaranId);
+                                    $sisa = $kelas->kapasitas - $terisi;
+                                    return "Sisa kapasitas: {$sisa} dari {$kelas->kapasitas}";
+                                }
+
+                                return null;
+                            }),
 
                         Textarea::make('keterangan')
-                            ->label('Keterangan')
-                            ->rows(2)
-                            ->placeholder('Contoh: Naik kelas dari X IPA 1 ke XI IPA 1'),
+                            ->label('Keterangan (Opsional)')
+                            ->rows(2),
                     ])
-                    ->action(function (KelasSiswa $record, array $data) {
+                    ->action(function (KelasSiswa $record, array $data): void {
                         try {
-                            $keterangan = $data['keterangan'] ?? null;
-                            $record->naikKelas($data['tahun_ajaran_baru'], $keterangan);
+                            DB::beginTransaction();
+
+                            $record->naikKelas(
+                                $data['tahun_ajaran_id'],
+                                $data['kelas_id'],
+                                $data['keterangan'] ?? null
+                            );
+
+                            DB::commit();
 
                             Notification::make()
-                                ->success()
-                                ->title('Berhasil')
+                                ->title('Sukses!')
                                 ->body('Siswa berhasil dinaikkan ke kelas berikutnya.')
+                                ->success()
                                 ->send();
                         } catch (\Exception $e) {
+                            DB::rollBack();
+
                             Notification::make()
-                                ->danger()
-                                ->title('Gagal')
+                                ->title('Error!')
                                 ->body($e->getMessage())
+                                ->danger()
                                 ->send();
                         }
-                    })
-                    ->visible(fn(KelasSiswa $record): bool => $record->status === 'aktif'),
+                    }),
+
+                Action::make('tinggalKelas')
+                    ->label('Tinggal Kelas')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('warning')
+                    ->visible(fn(KelasSiswa $record): bool => $record->status === 'aktif')
+                    ->requiresConfirmation()
+                    ->modalHeading('Konfirmasi Tinggal Kelas')
+                    ->modalDescription('Apakah Anda yakin siswa ini tinggal kelas? Siswa akan mengulang di kelas yang sama pada tahun ajaran baru.')
+                    ->form([
+                        Select::make('tahun_ajaran_id')
+                            ->label('Tahun Ajaran Baru')
+                            ->options(function () {
+                                return TahunAjaran::all()->mapWithKeys(function ($tahunAjaran) {
+                                    $semesterLabel = $tahunAjaran->semester == '1' ? 'Ganjil' : 'Genap';
+                                    return [$tahunAjaran->id => $tahunAjaran->nama . ' - Semester ' . $semesterLabel];
+                                });
+                            })
+                            ->searchable()
+                            ->required()
+                            ->helperText('Pilih tahun ajaran dimana siswa akan mengulang'),
+
+                        Textarea::make('keterangan')
+                            ->label('Alasan / Keterangan')
+                            ->rows(3)
+                            ->required()
+                            ->placeholder('Contoh: Tidak memenuhi KKM, sering tidak masuk, dll.'),
+                    ])
+                    ->action(function (KelasSiswa $record, array $data): void {
+                        try {
+                            DB::beginTransaction();
+
+                            // Validate kapasitas kelas
+                            $kelas = $record->kelas;
+                            $tahunAjaranBaruId = $data['tahun_ajaran_id'];
+                            $currentCount = $kelas->getJumlahSiswaAktifAttribute($tahunAjaranBaruId);
+
+                            if ($currentCount >= $kelas->kapasitas) {
+                                throw new \Exception("Kapasitas kelas {$kelas->nama} untuk tahun ajaran baru sudah penuh.");
+                            }
+
+                            $record->tinggalKelas(
+                                $tahunAjaranBaruId,
+                                $data['keterangan']
+                            );
+
+                            DB::commit();
+
+                            Notification::make()
+                                ->title('Sukses!')
+                                ->body('Status siswa berhasil diubah menjadi tinggal kelas.')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            DB::rollBack();
+
+                            Notification::make()
+                                ->title('Error!')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
 
                 DeleteAction::make(),
             ])

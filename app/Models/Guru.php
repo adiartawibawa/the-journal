@@ -12,6 +12,8 @@ class Guru extends Model
 {
     use HasUuids;
 
+    protected $table = 'gurus';
+
     protected $fillable = [
         'user_id',
         'nuptk',
@@ -36,16 +38,17 @@ class Guru extends Model
     }
 
     // Guru sebagai wali kelas
-    // Relasi ke Wali Kelas (Pivot)
     public function waliKelas(): HasMany
     {
-        return $this->hasMany(WaliKelas::class, 'user_id', 'user_id');
+        // Gunakan guru_id sebagai foreign key, bukan user_id
+        return $this->hasMany(WaliKelas::class, 'guru_id', 'id');
     }
 
-    // Relasi ke Guru Mengajar (Pivot)
+    // Relasi ke Guru Mengajar
     public function tugasMengajar(): HasMany
     {
-        return $this->hasMany(GuruMengajar::class, 'user_id', 'user_id');
+        // Gunakan guru_id sebagai foreign key
+        return $this->hasMany(GuruMengajar::class, 'guru_id', 'id');
     }
 
     // assesor

@@ -5,11 +5,12 @@ namespace Database\Seeders;
 use App\Models\Guru;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\Role;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -20,84 +21,169 @@ class MasterDataSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Tahun Ajaran
-        $ta = TahunAjaran::create([
-            'nama' => '2025/2026',
-            'semester' => '1',
-            'tanggal_awal' => '2025-07-15',
-            'tanggal_akhir' => '2025-12-20',
-            'is_active' => true,
-        ]);
+        DB::transaction(function () {
 
-        // 2. Mata Pelajaran
-        $mtk = Mapel::create([
-            'kode' => 'MTK-01',
-            'nama' => 'Matematika',
-            'kelompok' => 'A',
-        ]);
+            $faker = \Faker\Factory::create('id_ID');
+            $daftarKelas = [];
 
-        // 3. Kelas
-        $kelas10a = Kelas::create([
-            'kode' => 'X-A',
-            'nama' => 'Kelas 10 Unggulan A',
-            'tingkat' => 10,
-            'jurusan' => 'IPA',
-        ]);
+            // 1. Buat Role (Spatie Permission dengan UUID)
+            $adminRole   = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+            $teacherRole = Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
+            $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
 
-        // SEED GURU
-        $userGuru = User::create([
-            'name' => 'Budi Utomo, S.Pd',
-            'email' => 'budi@sekolah.sch.id',
-            'password' => Hash::make('password'),
-        ]);
+            // 2. Tahun Ajaran Aktif
+            $ta = TahunAjaran::create([
+                'nama' => '2025/2026',
+                'semester' => '1',
+                'tanggal_awal' => '2025-07-15',
+                'tanggal_akhir' => '2025-12-20',
+                'is_active' => true,
+            ]);
 
-        Guru::create([
-            'user_id' => $userGuru->id,
-            'nuptk' => '1234567890',
-            'status_kepegawaian' => 'PNS',
-        ]);
+            // 3. Master Data Kelas SMK
+            $jurusans = [
+                'RPL' => 'Rekayasa Perangkat Lunak',
+                'TKJ' => 'Teknik Komputer dan Jaringan',
+                'AP' => 'Administrasi Perhotelan',
+                'KUL' => 'Tata Boga',
+                'OTO' => 'Otomotif'
+            ];
+            $tingkat = [10, 11, 12];
+            $paralel = ['1', '2'];
 
-        // SEED SISWA
-        $userSiswa = User::create([
-            'name' => 'Andi Pratama',
-            'email' => 'andi@siswa.sch.id',
-            'password' => Hash::make('password'),
-        ]);
+            foreach ($jurusans as $kodeJurusan => $namaJurusan) {
+                foreach ($tingkat as $t) {
+                    foreach ($paralel as $p) {
+                        $daftarKelas[] = Kelas::create([
+                            'kode' => "{$t}-{$kodeJurusan}-{$p}",
+                            'nama' => "Kelas {$t} {$kodeJurusan} {$p}",
+                            'tingkat' => $t,
+                            'jurusan' => $kodeJurusan,
+                            'kapasitas' => 36, // Standar rombel SMK
+                        ]);
+                    }
+                }
+            }
 
-        Siswa::create([
-            'user_id' => $userSiswa->id,
-            'nisn' => '00987654321',
-            'is_active' => true,
-        ]);
+            // 4. Master Data Mapel
+            $daftarMapel = [
+                'Matematika',
+                'Bahasa Indonesia',
+                'Bahasa Inggris',
+                'Pendidikan Agama',
+                'PKn',
+                'Sejarah',
+                'PJOK',
+                'Seni Budaya',
+                'Simulasi Digital',
+                'Informatika',
+                'Produktif RPL',
+                'Basis Data',
+                'Pemrograman Web',
+                'Pemrograman Mobile',
+                'Jaringan Dasar',
+                'Administrasi Server',
+                'Keamanan Jaringan',
+                'Akuntansi Dasar',
+                'Manajemen Perhotelan',
+                'Tata Hidang',
+                'Pengolahan Makanan',
+                'Teknik Kendaraan Ringan',
+                'Kewirausahaan',
+                'Fisika Terapan',
+                'Kimia Terapan',
+            ];
 
-        // Penugasan
-        $ta = TahunAjaran::where('is_active', true)->first();
-        $guru = User::where('email', 'budi@sekolah.sch.id')->first();
-        $siswa = User::where('email', 'andi@siswa.sch.id')->first();
-        $kelas = Kelas::where('kode', 'X-A')->first();
-        $mapel = Mapel::where('kode', 'MTK-01')->first();
+            foreach ($daftarMapel as $index => $namaMapel) {
+                $savedMapels[] = Mapel::create([
+                    'kode' => 'MP-' . str_pad($index + 1, 2, '0', STR_PAD_LEFT),
+                    'nama' => $namaMapel,
+                    'kelompok' => chr(65 + ($index % 3)), // A, B, C
+                ]);
+            }
 
-        // 1. Set Guru sebagai Wali Kelas
-        $guru->daftarWaliKelas()->attach($kelas->id, [
-            'id' => Str::uuid(),
-            'tahun_ajaran_id' => $ta->id,
-            'is_active' => true,
-        ]);
+            // 5. SEED ADMIN
+            $admin = User::create([
+                'name' => 'Administrator',
+                'email' => 'admin@dejournal.test',
+                'password' => Hash::make('password'),
+            ]);
+            $admin->assignRole($adminRole);
 
-        // 2. Set Guru Mengajar Mata Pelajaran
-        $guru->jadwalMengajar()->attach($mapel->id, [
-            'id' => Str::uuid(),
-            'tahun_ajaran_id' => $ta->id,
-            'kelas_id' => $kelas->id,
-            'kkm' => 75,
-            'jam_per_minggu' => 4,
-        ]);
+            // 6. SEED 10 GURU
+            for ($i = 1; $i <= 10; $i++) {
 
-        // 3. Daftarkan Siswa ke Kelas
-        $siswa->riwayatKelas()->attach($kelas->id, [
-            'id' => Str::uuid(),
-            'tahun_ajaran_id' => $ta->id,
-            'status' => 'aktif',
-        ]);
+                $namaGuru = $faker->name();
+
+                $userGuru = User::create([
+                    'name' => $namaGuru,
+                    'email' => "guru{$i}@dejournal.test",
+                    'password' => Hash::make('password'),
+                ]);
+
+                $userGuru->assignRole($teacherRole);
+
+                $guru = Guru::create([
+                    'user_id' => $userGuru->id,
+                    'nuptk' => $faker->numerify('################'),
+                    'status_kepegawaian' => $faker->randomElement(['PNS', 'PPPK', 'Guru Honor', 'Staff Honor', 'Kontrak']),
+                ]);
+
+                // Acak Guru menjadi Wali Kelas di salah satu kelas
+                if ($i <= count($daftarKelas)) {
+                    $guru->waliKelas()->create([
+                        'id' => Str::uuid(),
+                        'kelas_id' => $daftarKelas[$i - 1]->id,
+                        'tahun_ajaran_id' => $ta->id,
+                        'is_active' => true,
+                    ]);
+                }
+
+                foreach (array_rand($savedMapels, 2) as $key) {
+                    DB::table('guru_mengajar')->insert([
+                        'id' => Str::uuid(),
+                        'guru_id' => $guru->id,
+                        'mapel_id' => $savedMapels[$key]->id,
+                        'kelas_id' => $daftarKelas[array_rand($daftarKelas)]->id,
+                        'tahun_ajaran_id' => $ta->id,
+                        'kkm' => 75,
+                        'jam_per_minggu' => 4,
+                        'is_active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            }
+
+            // 7. SEED 40 SISWA
+            for ($j = 1; $j <= 40; $j++) {
+
+                $namaSiswa = $faker->name();
+
+                $userSiswa = User::create([
+                    'name' => $namaSiswa,
+                    'email' => "siswa{$j}@dejournal.test",
+                    'password' => Hash::make('password'),
+                ]);
+                $userSiswa->assignRole($studentRole);
+
+                $siswa = Siswa::create([
+                    'user_id' => $userSiswa->id,
+                    'nisn' => $faker->numerify('00########'),
+                    'is_active' => true,
+                ]);
+
+                // Masukkan Siswa ke Kelas Secara Acak
+                $kelasAcak = $daftarKelas[array_rand($daftarKelas)];
+
+                $siswa->kelasSiswa()->create([
+                    'id' => Str::uuid(),
+                    'kelas_id' => $kelasAcak->id,
+                    'tahun_ajaran_id' => $ta->id,
+                    'status' => 'aktif',
+                    'tanggal_mulai' => now(),
+                ]);
+            }
+        });
     }
 }

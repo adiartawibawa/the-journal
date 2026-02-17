@@ -11,6 +11,8 @@ class TahunAjaran extends Model
 {
     use HasUuids;
 
+    protected $table = 'tahun_ajarans';
+
     protected $fillable = [
         'nama',
         'tanggal_awal',

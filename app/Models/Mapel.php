@@ -10,6 +10,8 @@ class Mapel extends Model
 {
     use HasUuids;
 
+    protected $table = 'mapels';
+
     protected $fillable = [
         'kode',
         'nama',

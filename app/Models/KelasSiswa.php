@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Support\Facades\DB;
 
-class KelasSiswa extends Model
+class KelasSiswa extends Pivot
 {
     use HasUuids;
 
@@ -76,45 +76,56 @@ class KelasSiswa extends Model
     }
 
     // Method untuk kenaikan kelas
-    public function naikKelas(string $tahunAjaranBaruId, ?string $keterangan = null)
+    public function naikKelas(string $tahunAjaranBaruId, string $targetKelasId, ?string $keterangan = null)
     {
-        // Cari kelas dengan tingkat selanjutnya
-        $kelasBaru = Kelas::where('tingkat', $this->kelas->tingkat + 1)
-            ->where('jurusan', $this->kelas->jurusan)
-            ->where('is_active', true)
-            ->first();
+        $kelasBaru = Kelas::findOrFail($targetKelasId);
 
-        if (!$kelasBaru) {
-            throw new \Exception('Kelas tujuan tidak ditemukan untuk tingkat ' . ($this->kelas->tingkat + 1));
+        // Validasi tetap dilakukan
+        if ($kelasBaru->getJumlahSiswaAktifAttribute($tahunAjaranBaruId) >= $kelasBaru->kapasitas) {
+            throw new \Exception("Kapasitas kelas {$kelasBaru->nama} penuh.");
         }
 
-        // Cek kapasitas kelas baru
-        $jumlahSiswaBaru = self::where('kelas_id', $kelasBaru->id)
-            ->where('tahun_ajaran_id', $tahunAjaranBaruId)
-            ->where('status', 'aktif')
-            ->count();
-
-        if ($jumlahSiswaBaru >= $kelasBaru->kapasitas) {
-            throw new \Exception("Kelas {$kelasBaru->nama} sudah mencapai kapasitas maksimal");
-        }
-
-        // Update status kelas lama
+        // Update record lama (History)
         $this->update([
-            'status' => 'lulus',
+            'status' => 'lulus', // Atau 'naik_kelas' jika Anda menambah enum
             'tanggal_selesai' => now(),
-            'keterangan' => $keterangan ?? 'Naik kelas ke ' . $kelasBaru->nama
         ]);
 
-        // Buat record baru di kelas baru
+        // Insert record baru
         return self::create([
-            'id' => (string) Str::uuid(),
             'tahun_ajaran_id' => $tahunAjaranBaruId,
-            'kelas_id' => $kelasBaru->id,
+            'kelas_id' => $targetKelasId,
             'siswa_id' => $this->siswa_id,
             'status' => 'aktif',
             'tanggal_mulai' => now(),
-            'keterangan' => $keterangan ?? 'Naik kelas dari ' . $this->kelas->nama
         ]);
+    }
+
+    /**
+     * Method untuk menangani siswa tinggal kelas
+     */
+    public function tinggalKelas(string $tahunAjaranBaruId, ?string $keterangan = null)
+    {
+        return DB::transaction(function () use ($tahunAjaranBaruId, $keterangan) {
+            // 1. Update status record saat ini menjadi 'tinggal_kelas'
+            // Pastikan Anda sudah menambah enum 'tinggal_kelas' di migration
+            $this->update([
+                'status' => 'tinggal_kelas',
+                'tanggal_selesai' => now(),
+                'keterangan' => $keterangan ?? 'Dinyatakan tinggal di kelas ' . $this->kelas->nama
+            ]);
+
+            // 2. Buat record baru untuk tahun ajaran baru di kelas yang SAMA
+            return self::create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'tahun_ajaran_id' => $tahunAjaranBaruId,
+                'kelas_id' => $this->kelas_id, // Tetap di kelas yang sama
+                'siswa_id' => $this->siswa_id,
+                'status' => 'aktif',
+                'tanggal_mulai' => now(),
+                'keterangan' => 'Mengulang di kelas ' . $this->kelas->nama
+            ]);
+        });
     }
 
     // Scope untuk histori siswa

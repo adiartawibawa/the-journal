@@ -10,6 +10,8 @@ class GuruMengajar extends Pivot
 {
     use HasUuids;
 
+    protected $table = 'guru_mengajar';
+
     // Casting agar tipe data integer tetap konsisten
     protected $casts = [
         'kkm' => 'integer',

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -131,6 +132,7 @@ class User extends Authenticatable implements HasMedia
         return "https://www.gravatar.com/avatar/{$hash}?s=256&d=mp";
     }
 
+
     // User sebagai guru
     public function profileGuru(): HasOne
     {
@@ -143,26 +145,26 @@ class User extends Authenticatable implements HasMedia
         return $this->hasOne(Siswa::class, 'user_id');
     }
 
-    public function daftarWaliKelas()
+    public function daftarWaliKelas(): BelongsToMany
     {
-        return $this->belongsToMany(Kelas::class, 'wali_kelas', 'user_id', 'kelas_id')
+        return $this->belongsToMany(Kelas::class, 'wali_kelas', 'guru_id', 'kelas_id')
             ->using(WaliKelas::class) // Wajib didefinisikan
             ->withPivot('id', 'tahun_ajaran_id', 'is_active')
             ->withTimestamps();
     }
 
-    public function jadwalMengajar()
+    public function jadwalMengajar(): BelongsToMany
     {
-        return $this->belongsToMany(Mapel::class, 'guru_mengajar', 'user_id', 'mapel_id')
+        return $this->belongsToMany(Mapel::class, 'guru_mengajar', 'guru_id', 'mapel_id')
             ->using(GuruMengajar::class) // Wajib didefinisikan
             ->withPivot('id', 'kelas_id', 'tahun_ajaran_id', 'kkm', 'jam_per_minggu')
             ->withTimestamps();
     }
 
     // Relasi ke Riwayat Kelas (Data Dinamis: Tahun ke Tahun)
-    public function riwayatKelas()
+    public function riwayatKelas(): BelongsToMany
     {
-        return $this->belongsToMany(Kelas::class, 'kelas_siswa', 'user_id', 'kelas_id')
+        return $this->belongsToMany(Kelas::class, 'kelas_siswa', 'siswa_id', 'kelas_id')
             ->using(KelasSiswa::class)
             ->withPivot('id', 'tahun_ajaran_id', 'status')
             ->withTimestamps();

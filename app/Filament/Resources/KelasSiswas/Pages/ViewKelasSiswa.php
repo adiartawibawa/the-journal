@@ -3,10 +3,10 @@
 namespace App\Filament\Resources\KelasSiswas\Pages;
 
 use App\Filament\Resources\KelasSiswas\KelasSiswaResource;
-use Filament\Actions\CreateAction;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Actions\EditAction;
+use Filament\Resources\Pages\ViewRecord;
 
-class ListKelasSiswas extends ListRecords
+class ViewKelasSiswa extends ViewRecord
 {
     protected static string $resource = KelasSiswaResource::class;
 }

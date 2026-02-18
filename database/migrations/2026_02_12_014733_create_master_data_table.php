@@ -100,6 +100,8 @@ return new class extends Migration
             $table->date('tanggal_selesai')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamps();
+
+            $table->unique(['tahun_ajaran_id', 'siswa_id']);
         });
 
         Schema::create('riwayat_status_siswa', function (Blueprint $table) {

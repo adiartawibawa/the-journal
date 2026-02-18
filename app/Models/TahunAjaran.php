@@ -41,9 +41,23 @@ class TahunAjaran extends Model
     // Method untuk mengaktifkan tahun ajaran ini dan menonaktifkan lainnya
     public function activate()
     {
-        DB::transaction(function () {
-            self::where('id', '!=', $this->id)->update(['is_active' => false]);
-            $this->update(['is_active' => true]);
+        // Set is_active ke true dan simpan.
+        // Hook 'saving' di bawah yang akan bekerja menonaktifkan record lain.
+        $this->is_active = true;
+        $this->save();
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (TahunAjaran $tahunAjaran) {
+            // Jika tahun ajaran ini diset aktif (is_active = true)
+            if ($tahunAjaran->is_active) {
+                // Nonaktifkan semua tahun ajaran lain sebelum menyimpan record ini
+                static::query()
+                    ->where('id', '!=', $tahunAjaran->id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false]);
+            }
         });
     }
 }

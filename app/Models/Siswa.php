@@ -17,12 +17,12 @@ class Siswa extends Model
         'user_id',
         'nisn',
         'tempat_lahir',
+        'tanggal_lahir',
         'nama_ayah',
         'nama_ibu',
         'pekerjaan_orang_tua',
         'alamat_orang_tua',
         'no_telp_orang_tua',
-        'tanggal_lahir',
         'is_active'
     ];
 
@@ -30,6 +30,7 @@ class Siswa extends Model
     {
         return [
             'tanggal_lahir' => 'date',
+            'is_active' => 'boolean'
         ];
     }
 
@@ -85,7 +86,7 @@ class Siswa extends Model
     {
         return $this->kelasSiswa()
             ->with(['kelas', 'tahunAjaran'])
-            ->orderBy('tanggal_mulai', 'desc')
+            ->orderBy('tanggal_masuk', 'desc')
             ->get()
             ->map(function ($item) {
                 return [
@@ -95,8 +96,8 @@ class Siswa extends Model
                     'jurusan' => $item->kelas?->jurusan,
                     'status' => $item->status,
                     'periode' => $item->periode,
-                    'tanggal_mulai' => $item->tanggal_mulai?->format('d/m/Y'),
-                    'tanggal_selesai' => $item->tanggal_selesai?->format('d/m/Y'),
+                    'tanggal_masuk' => $item->tanggal_masuk?->format('d/m/Y'),
+                    'tanggal_keluar' => $item->tanggal_keluar?->format('d/m/Y'),
                 ];
             });
     }
@@ -110,7 +111,7 @@ class Siswa extends Model
     // Mendapatkan Tahun Masuk secara dinamis
     public function getTahunMasukAttribute()
     {
-        $awal = $this->kelasSiswa()->with('tahunAjaran')->orderBy('tanggal_mulai', 'asc')->first();
+        $awal = $this->kelasSiswa()->with('tahunAjaran')->orderBy('tanggal_masuk', 'asc')->first();
         return $awal ? $awal->tahunAjaran->nama : null;
     }
 

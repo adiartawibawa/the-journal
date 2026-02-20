@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class KelasSiswa extends Pivot
+class KelasSiswa extends Model
 {
     use HasUuids;
 
@@ -52,11 +52,11 @@ class KelasSiswa extends Pivot
     // Accessor untuk display di Filament
     public function getPeriodeAttribute(): string
     {
-        if ($this->tanggal_mulai && $this->tanggal_selesai) {
-            return $this->tanggal_mulai->format('d/m/Y') . ' - ' .
-                $this->tanggal_selesai->format('d/m/Y');
+        if ($this->tanggal_masuk && $this->tanggal_keluar) {
+            return $this->tanggal_masuk->format('d/m/Y') . ' - ' .
+                $this->tanggal_keluar->format('d/m/Y');
         }
-        return '-';
+        return $this->tanggal_masuk ? $this->tanggal_masuk->format('d/m/Y') . ' - Aktif' : '-';
     }
 
     // Scope untuk memudahkan query
@@ -123,7 +123,6 @@ class KelasSiswa extends Pivot
     public function naikKelas(string $tahunAjaranBaruId, string $targetKelasId)
     {
         return DB::transaction(function () use ($tahunAjaranBaruId, $targetKelasId) {
-
             // Update record saat ini (menjadi history)
             $this->update([
                 'status' => 'keluar',
@@ -133,7 +132,6 @@ class KelasSiswa extends Pivot
 
             // Buat Record Kelas Baru
             return self::create([
-                'id' => (string) Str::uuid(),
                 'tahun_ajaran_id' => $tahunAjaranBaruId,
                 'kelas_id' => $targetKelasId,
                 'siswa_id' => $this->siswa_id,
@@ -151,15 +149,14 @@ class KelasSiswa extends Pivot
         return DB::transaction(function () use ($tahunAjaranBaruId, $keterangan) {
             // Update record saat ini sebagai history tahun lalu
             $this->update([
-                'status' => 'keluar', // Status di rombel ini menjadi keluar
-                'hasil_akhir' => 'tinggal_kelas', // Mencatat hasil akademis
-                'tanggal_keluar' => now(), // Menggunakan kolom baru
+                'status' => 'keluar',
+                'hasil_akhir' => 'tinggal_kelas',
+                'tanggal_keluar' => now(),
                 'catatan_internal' => $keterangan ?? 'Siswa dinyatakan tinggal kelas.'
             ]);
 
             // Buat Record Baru (Kelas yang sama)
             return self::create([
-                'id' => (string) Str::uuid(),
                 'tahun_ajaran_id' => $tahunAjaranBaruId,
                 'kelas_id' => $this->kelas_id,
                 'siswa_id' => $this->siswa_id,

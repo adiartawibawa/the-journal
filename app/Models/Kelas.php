@@ -21,7 +21,7 @@ class Kelas extends Model
         'jurusan',
         'kapasitas',
         'deskripsi',
-        'is_active',
+        'is_active'
     ];
 
     protected function casts(): array
@@ -50,18 +50,11 @@ class Kelas extends Model
         return $this->hasMany(WaliKelas::class, 'kelas_id');
     }
 
-    // public function waliKelas(): BelongsToMany
-    // {
-    //     return $this->belongsToMany(Guru::class, 'wali_kelas', 'kelas_id', 'guru_id')
-    //         ->using(WaliKelas::class) // Menggunakan model custom pivot
-    //         ->withPivot('id', 'tahun_ajaran_id', 'is_active')
-    //         ->withTimestamps();
-    // }
     /**
      * METHOD STATIC
      * Digunakan untuk Badge Navigasi (Menghitung total siswa di semua kelas)
      */
-    public static function totalSiswaAktif()
+    public static function totalSiswaAktif(): int
     {
         return self::query()
             ->whereHas('kelasSiswa', function ($query) {
@@ -86,6 +79,17 @@ class Kelas extends Model
             ->where('status', 'aktif')
             ->whereHas('tahunAjaran', fn($q) => $q->where('is_active', true))
             ->count();
+    }
+
+    // Accessor untuk menghitung kapasitas tersisa
+    public function getSisaKapasitasAttribute(): int
+    {
+        $aktif = $this->kelasSiswa()
+            ->where('status', 'aktif')
+            ->whereHas('tahunAjaran', fn($q) => $q->where('is_active', true))
+            ->count();
+
+        return max(0, $this->kapasitas - $aktif);
     }
 
     /**

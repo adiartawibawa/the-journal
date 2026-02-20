@@ -112,10 +112,10 @@ class KelasSiswaRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
-                AttachAction::make()
+                CreateAction::make()
                     ->label('Tambah Siswa ke Kelas')
-                    ->preloadRecordSelect()
-                    ->schema(fn(AttachAction $action): array => [
+                    // ->preloadRecordSelect()
+                    ->schema(fn(CreateAction $action): array => [
                         $action->getRecordSelect(),
                         Hidden::make('tahun_ajaran_id')
                             ->default(fn() => TahunAjaran::where('is_active', true)->value('id')),
@@ -129,11 +129,11 @@ class KelasSiswaRelationManager extends RelationManager
                         $data['id'] = (string) Str::uuid();
                         return $data;
                     }),
-                AssociateAction::make(),
+                // AssociateAction::make(),
             ])
             ->recordActions([
                 EditAction::make(),
-                DissociateAction::make(),
+                // DissociateAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
@@ -142,6 +142,7 @@ class KelasSiswaRelationManager extends RelationManager
                         ->label('Lanjut Semester')
                         ->icon('heroicon-o-arrow-path')
                         ->color('success')
+                        ->visible(fn() => TahunAjaran::currentIsGanjil())
                         ->schema([
                             Select::make('semester_baru_id')
                                 ->label('Target Semester (Genap)')
@@ -192,7 +193,7 @@ class KelasSiswaRelationManager extends RelationManager
                         ->label('Proses Kenaikan/Kelulusan')
                         ->icon('heroicon-o-arrow-trending-up')
                         ->color('success')
-                        ->visible(fn() => TahunAjaran::where('is_active', true)->first()?->isSemesterGenap())
+                        ->visible(fn() => TahunAjaran::currentIsGenap())
                         ->schema([
                             Select::make('status_akhir')
                                 ->label('Hasil Akhir di Kelas Ini')
@@ -226,7 +227,6 @@ class KelasSiswaRelationManager extends RelationManager
                             try {
                                 DB::transaction(function () use ($records, $data) {
                                     $successCount = 0;
-
                                     foreach ($records as $record) {
                                         if ($data['status_akhir'] === 'naik_kelas') {
                                             // Memanggil logic naikKelas yang sudah disesuaikan di Model
@@ -267,7 +267,7 @@ class KelasSiswaRelationManager extends RelationManager
                         ->label('Proses Tinggal Kelas')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->visible(fn() => TahunAjaran::where('is_active', true)->first()?->isSemesterGenap())
+                        ->visible(fn() => TahunAjaran::currentIsGenap())
                         ->schema([
                             Select::make('tahun_ajaran_baru_id')
                                 ->label('Tahun Ajaran Baru (Tahun Mengulang)')

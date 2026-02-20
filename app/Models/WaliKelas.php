@@ -3,14 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class WaliKelas extends Pivot
+class WaliKelas extends Model
 {
     use HasUuids;
 
     protected $table = 'wali_kelas';
+
+    protected $fillable = [
+        'id',
+        'tahun_ajaran_id',
+        'kelas_id',
+        'guru_id',
+        'is_active'
+    ];
 
     public function guru(): BelongsTo
     {

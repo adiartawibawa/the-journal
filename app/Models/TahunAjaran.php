@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Semester;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -25,11 +26,14 @@ class TahunAjaran extends Model
     protected function casts()
     {
         return [
+            'semester' => Semester::class,
             'tanggal_awal' => 'date',
             'tanggal_akhir' => 'date',
             'is_active' => 'boolean'
         ];
     }
+
+    protected static $activeCache = null;
 
     /**
      * Relasi ke kelas_siswa
@@ -41,14 +45,34 @@ class TahunAjaran extends Model
 
     public function isSemesterGenap(): bool
     {
-        // Logika jika nama atau kode mengandung kata 'Genap' atau '2'
-        return str_contains(strtolower($this->nama), 'genap') || str_contains($this->kode, '2');
+        return $this->semester === Semester::Genap;
+    }
+
+    public function isSemesterGanjil(): bool
+    {
+        return $this->semester === Semester::Ganjil;
+    }
+
+    /**
+     * Mengecek apakah Semester saat ini adalah Genap
+     */
+    public static function currentIsGenap(): bool
+    {
+        return static::getActive()?->isSemesterGenap() ?? false;
+    }
+
+    /**
+     * Mengecek apakah Semester saat ini adalah Ganjil
+     */
+    public static function currentIsGanjil(): bool
+    {
+        return static::getActive()?->isSemesterGanjil() ?? false;
     }
 
     protected function namaSemester(): Attribute
     {
         return Attribute::make(
-            get: fn() => "{$this->nama} - Semester {$this->semester}",
+            get: fn() => "{$this->nama} - Semester {$this->semester->getLabel()}",
         );
     }
 
@@ -59,6 +83,18 @@ class TahunAjaran extends Model
         // Hook 'saving' di bawah yang akan bekerja menonaktifkan record lain.
         $this->is_active = true;
         $this->save();
+    }
+
+    /**
+     * Helper internal untuk mengambil data Tahun Ajaran yang aktif (Memoized)
+     */
+    public static function getActive(): ?static
+    {
+        if (static::$activeCache === null) {
+            static::$activeCache = static::where('is_active', true)->first();
+        }
+
+        return static::$activeCache;
     }
 
     protected static function booted(): void

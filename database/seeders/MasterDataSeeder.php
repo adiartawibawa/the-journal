@@ -26,7 +26,7 @@ class MasterDataSeeder extends Seeder
             $faker = \Faker\Factory::create('id_ID');
             $daftarKelas = [];
 
-            // 1. Buat Role (Spatie Permission dengan UUID)
+            // 1. Buat Role
             $adminRole   = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
             $teacherRole = Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
             $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
@@ -110,8 +110,8 @@ class MasterDataSeeder extends Seeder
             ]);
             $admin->assignRole($adminRole);
 
-            // 6. SEED 10 GURU
-            for ($i = 1; $i <= 10; $i++) {
+            // 6. SEED 50 GURU
+            for ($i = 1; $i <= 50; $i++) {
 
                 $namaGuru = $faker->name();
 
@@ -155,8 +155,8 @@ class MasterDataSeeder extends Seeder
                 }
             }
 
-            // 7. SEED 40 SISWA
-            for ($j = 1; $j <= 40; $j++) {
+            // 7. SEED 350 SISWA
+            for ($j = 1; $j <= 350; $j++) {
 
                 $namaSiswa = $faker->name();
 

@@ -40,14 +40,12 @@ class Guru extends Model
     // Guru sebagai wali kelas
     public function waliKelas(): HasMany
     {
-        // Gunakan guru_id sebagai foreign key, bukan user_id
         return $this->hasMany(WaliKelas::class, 'guru_id', 'id');
     }
 
     // Relasi ke Guru Mengajar
     public function tugasMengajar(): HasMany
     {
-        // Gunakan guru_id sebagai foreign key
         return $this->hasMany(GuruMengajar::class, 'guru_id', 'id');
     }
 

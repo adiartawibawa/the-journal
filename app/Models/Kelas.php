@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Kelas extends Model
@@ -44,6 +45,18 @@ class Kelas extends Model
         return $this->hasMany(KelasSiswa::class, 'kelas_id');
     }
 
+    public function waliKelas(): HasMany
+    {
+        return $this->hasMany(WaliKelas::class, 'kelas_id');
+    }
+
+    // public function waliKelas(): BelongsToMany
+    // {
+    //     return $this->belongsToMany(Guru::class, 'wali_kelas', 'kelas_id', 'guru_id')
+    //         ->using(WaliKelas::class) // Menggunakan model custom pivot
+    //         ->withPivot('id', 'tahun_ajaran_id', 'is_active')
+    //         ->withTimestamps();
+    // }
     /**
      * METHOD STATIC
      * Digunakan untuk Badge Navigasi (Menghitung total siswa di semua kelas)
@@ -65,7 +78,7 @@ class Kelas extends Model
 
     /**
      * ACCESSOR (Attribute)
-     * Digunakan jika Anda memanggil $kelas->jumlah_siswa_aktif pada instansi tunggal
+     * Digunakan jika memanggil $kelas->jumlah_siswa_aktif pada instansi tunggal
      */
     public function getJumlahSiswaAktifAttribute(): int
     {

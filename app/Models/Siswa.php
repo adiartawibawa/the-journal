@@ -54,6 +54,15 @@ class Siswa extends Model
     }
 
     /**
+     * Relasi ke riwayat status akademik (audit trail)
+     */
+    public function riwayatStatus(): HasMany
+    {
+        return $this->hasMany(RiwayatStatusSiswa::class, 'siswa_id')
+            ->orderBy('created_at', 'desc');
+    }
+
+    /**
      * Mendapatkan kelas aktif siswa untuk tahun ajaran tertentu
      */
     public function getKelasAktif($tahunAjaranId = null)

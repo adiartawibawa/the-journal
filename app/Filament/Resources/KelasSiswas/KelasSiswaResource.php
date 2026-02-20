@@ -7,13 +7,15 @@ use App\Filament\Resources\KelasSiswas\Schemas\KelasSiswaForm;
 use App\Filament\Resources\KelasSiswas\Tables\KelasSiswasTable;
 use App\Models\Kelas;
 use BackedEnum;
+use BezhanSalleh\FilamentShield\Contracts\HasShieldPermissions;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
-class KelasSiswaResource extends Resource
+class KelasSiswaResource extends Resource implements HasShieldPermissions
 {
     protected static ?string $model = Kelas::class;
 
@@ -21,15 +23,15 @@ class KelasSiswaResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Penugasan';
 
-    protected static ?string $navigationLabel = 'Siswa per Kelas';
+    protected static ?string $navigationLabel = 'Rombongan Belajar';
 
-    protected static ?string $pluralLabel = 'Siswa per Kelas';
+    protected static ?string $pluralLabel = 'Rombongan Belajar';
 
     protected static ?string $recordTitleAttribute = 'nama_kelas_ta';
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $slug = 'siswa-per-kelas';
+    protected static ?string $slug = 'rombongan-belajar';
 
     public static function form(Schema $schema): Schema
     {
@@ -68,4 +70,26 @@ class KelasSiswaResource extends Resource
     {
         return 'success';
     }
+
+    public static function getResourceDescriptor(): string
+    {
+        return 'rombongan-belajar';
+    }
+
+    public static function getPermissionPrefixes(): array
+    {
+        return [
+            'view',
+            'view_any',
+            'create',
+            'update',
+            'delete',
+            'delete_any',
+        ];
+    }
+
+    // public static function canViewAny(): bool
+    // {
+    //     return Auth::user()->can('view_any_kelas_siswa');
+    // }
 }

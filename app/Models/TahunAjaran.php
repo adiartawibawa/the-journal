@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,6 +37,19 @@ class TahunAjaran extends Model
     public function kelasSiswa(): HasMany
     {
         return $this->hasMany(KelasSiswa::class, 'tahun_ajaran_id');
+    }
+
+    public function isSemesterGenap(): bool
+    {
+        // Logika jika nama atau kode mengandung kata 'Genap' atau '2'
+        return str_contains(strtolower($this->nama), 'genap') || str_contains($this->kode, '2');
+    }
+
+    protected function namaSemester(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => "{$this->nama} - Semester {$this->semester}",
+        );
     }
 
     // Method untuk mengaktifkan tahun ajaran ini dan menonaktifkan lainnya

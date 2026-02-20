@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class KelasSiswa extends Pivot
 {
@@ -19,15 +20,19 @@ class KelasSiswa extends Pivot
         'kelas_id',
         'siswa_id',
         'status',
-        'tanggal_mulai',
-        'tanggal_selesai',
-        'keterangan'
+        'hasil_akhir',
+        'tanggal_masuk',
+        'tanggal_keluar',
+        'catatan_internal'
     ];
 
-    protected $casts = [
-        'tanggal_mulai' => 'date',
-        'tanggal_selesai' => 'date',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'tanggal_masuk' => 'date',
+            'tanggal_keluar' => 'date',
+        ];
+    }
 
     public function siswa(): BelongsTo
     {
@@ -75,30 +80,67 @@ class KelasSiswa extends Pivot
         return $query->where('siswa_id', $siswaId);
     }
 
-    // Method untuk kenaikan kelas
-    public function naikKelas(string $tahunAjaranBaruId, string $targetKelasId, ?string $keterangan = null)
+    // --- Core Business Logic ---
+
+    /**
+     * Memproses transisi siswa ke semester berikutnya dalam satu tahun ajaran.
+     */
+    public function lanjutSemester(string $semesterBaruId)
     {
-        $kelasBaru = Kelas::findOrFail($targetKelasId);
+        return DB::transaction(function () use ($semesterBaruId) {
+            // Cek apakah sudah terdaftar di semester tersebut
+            $exists = self::where('tahun_ajaran_id', $semesterBaruId)
+                ->where('siswa_id', $this->siswa_id)
+                ->exists();
 
-        // Validasi tetap dilakukan
-        if ($kelasBaru->getJumlahSiswaAktifAttribute($tahunAjaranBaruId) >= $kelasBaru->kapasitas) {
-            throw new \Exception("Kapasitas kelas {$kelasBaru->nama} penuh.");
-        }
+            if ($exists) {
+                return null; // Abaikan jika sudah ada
+            }
 
-        // Update record lama (History)
-        $this->update([
-            'status' => 'lulus', // Atau 'naik_kelas' jika Anda menambah enum
-            'tanggal_selesai' => now(),
-        ]);
+            // Update record semester saat ini (semester lama)
+            // Kita nyatakan 'keluar' dari semester ini dengan hasil 'lanjut'
+            $this->update([
+                'status' => 'keluar',
+                'hasil_akhir' => 'lanjut',
+                'tanggal_keluar' => now(),
+                'catatan_internal' => ($this->catatan_internal ? $this->catatan_internal . ' | ' : '') . 'Selesai semester, lanjut ke semester berikutnya.'
+            ]);
 
-        // Insert record baru
-        return self::create([
-            'tahun_ajaran_id' => $tahunAjaranBaruId,
-            'kelas_id' => $targetKelasId,
-            'siswa_id' => $this->siswa_id,
-            'status' => 'aktif',
-            'tanggal_mulai' => now(),
-        ]);
+            // Buat record baru untuk semester baru namun di KELAS YANG SAMA
+            return self::create([
+                'id' => (string) Str::uuid(),
+                'tahun_ajaran_id' => $semesterBaruId,
+                'kelas_id' => $this->kelas_id,
+                'siswa_id' => $this->siswa_id,
+                'status' => 'aktif',
+                'tanggal_masuk' => now(),
+                'catatan_internal' => 'Lanjut dari semester sebelumnya.',
+            ]);
+        });
+    }
+
+    // Method untuk kenaikan kelas
+    public function naikKelas(string $tahunAjaranBaruId, string $targetKelasId)
+    {
+        return DB::transaction(function () use ($tahunAjaranBaruId, $targetKelasId) {
+
+            // Update record saat ini (menjadi history)
+            $this->update([
+                'status' => 'keluar',
+                'hasil_akhir' => 'naik_kelas',
+                'tanggal_keluar' => now(),
+            ]);
+
+            // Buat Record Kelas Baru
+            return self::create([
+                'id' => (string) Str::uuid(),
+                'tahun_ajaran_id' => $tahunAjaranBaruId,
+                'kelas_id' => $targetKelasId,
+                'siswa_id' => $this->siswa_id,
+                'status' => 'aktif',
+                'tanggal_masuk' => now(),
+            ]);
+        });
     }
 
     /**
@@ -107,23 +149,23 @@ class KelasSiswa extends Pivot
     public function tinggalKelas(string $tahunAjaranBaruId, ?string $keterangan = null)
     {
         return DB::transaction(function () use ($tahunAjaranBaruId, $keterangan) {
-            // 1. Update status record saat ini menjadi 'tinggal_kelas'
-            // Pastikan Anda sudah menambah enum 'tinggal_kelas' di migration
+            // Update record saat ini sebagai history tahun lalu
             $this->update([
-                'status' => 'tinggal_kelas',
-                'tanggal_selesai' => now(),
-                'keterangan' => $keterangan ?? 'Dinyatakan tinggal di kelas ' . $this->kelas->nama
+                'status' => 'keluar', // Status di rombel ini menjadi keluar
+                'hasil_akhir' => 'tinggal_kelas', // Mencatat hasil akademis
+                'tanggal_keluar' => now(), // Menggunakan kolom baru
+                'catatan_internal' => $keterangan ?? 'Siswa dinyatakan tinggal kelas.'
             ]);
 
-            // 2. Buat record baru untuk tahun ajaran baru di kelas yang SAMA
+            // Buat Record Baru (Kelas yang sama)
             return self::create([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'id' => (string) Str::uuid(),
                 'tahun_ajaran_id' => $tahunAjaranBaruId,
-                'kelas_id' => $this->kelas_id, // Tetap di kelas yang sama
+                'kelas_id' => $this->kelas_id,
                 'siswa_id' => $this->siswa_id,
                 'status' => 'aktif',
-                'tanggal_mulai' => now(),
-                'keterangan' => 'Mengulang di kelas ' . $this->kelas->nama
+                'tanggal_masuk' => now(),
+                'catatan_internal' => 'Mengulang di kelas yang sama.'
             ]);
         });
     }

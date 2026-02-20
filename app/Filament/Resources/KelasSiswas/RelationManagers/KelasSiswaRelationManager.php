@@ -21,6 +21,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -48,22 +49,23 @@ class KelasSiswaRelationManager extends RelationManager
                 Select::make('status')
                     ->options([
                         'aktif' => 'Aktif',
-                        'lulus' => 'Lulus',
-                        'tinggal_kelas' => 'Tinggal Kelas',
-                        'pindah' => 'Pindah',
+                        'mutasi' => 'Mutasi',
                         'keluar' => 'Keluar',
-                    ])
-                    ->required()
-                    ->default('aktif'),
+                    ])->required(),
 
-                DatePicker::make('tanggal_mulai')
-                    ->default(now())
-                    ->required(),
+                DatePicker::make('tanggal_masuk')
+                    ->default(now())->required(),
 
-                DatePicker::make('tanggal_selesai'),
+                DatePicker::make('tanggal_keluar'),
 
-                Textarea::make('keterangan')
-                    ->columnSpanFull(),
+                Select::make('hasil_akhir')
+                    ->options([
+                        'naik_kelas' => 'Naik Kelas',
+                        'tinggal_kelas' => 'Tinggal Kelas',
+                        'lulus' => 'Lulus',
+                    ])->placeholder('Belum ada hasil'),
+
+                Textarea::make('catatan_internal')->columnSpanFull(),
 
                 // Hidden field untuk mengunci Tahun Ajaran saat input data baru
                 Hidden::make('tahun_ajaran_id')
@@ -95,14 +97,16 @@ class KelasSiswaRelationManager extends RelationManager
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'aktif' => 'success',
-                        'lulus' => 'info',
-                        'tinggal_kelas', 'keluar' => 'danger',
-                        default => 'warning',
+                        'mutasi' => 'warning',
+                        'keluar' => 'danger',
                     }),
 
-                TextColumn::make('tanggal_mulai')
-                    ->date('d/m/Y')
-                    ->label('Mulai'),
+                TextColumn::make('hasil_akhir')
+                    ->badge()
+                    ->placeholder('-'),
+
+                TextColumn::make('tanggal_masuk')
+                    ->date('d/m/Y')->label('Masuk'),
             ])
             ->filters([
                 //
@@ -111,7 +115,7 @@ class KelasSiswaRelationManager extends RelationManager
                 AttachAction::make()
                     ->label('Tambah Siswa ke Kelas')
                     ->preloadRecordSelect()
-                    ->form(fn(AttachAction $action): array => [
+                    ->schema(fn(AttachAction $action): array => [
                         $action->getRecordSelect(),
                         Hidden::make('tahun_ajaran_id')
                             ->default(fn() => TahunAjaran::where('is_active', true)->value('id')),
@@ -119,9 +123,7 @@ class KelasSiswaRelationManager extends RelationManager
                             ->options(['aktif' => 'Aktif'])
                             ->default('aktif')
                             ->required(),
-                        DatePicker::make('tanggal_mulai')
-                            ->default(now())
-                            ->required(),
+                        DatePicker::make('tanggal_masuk')->default(now())->required(),
                     ])
                     ->mutateFormDataUsing(function (array $data) {
                         $data['id'] = (string) Str::uuid();
@@ -131,70 +133,129 @@ class KelasSiswaRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make(),
-                // DissociateAction::make(),
+                DissociateAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('lanjutSemester')
+                        ->label('Lanjut Semester')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('success')
+                        ->schema([
+                            Select::make('semester_baru_id')
+                                ->label('Target Semester (Genap)')
+                                ->options(fn() => TahunAjaran::where('is_active', false)->get()->pluck('nama_semester', 'id'))
+                                ->required(),
+                            DatePicker::make('tanggal_masuk')
+                                ->label('Tanggal Mulai Semester Baru')
+                                ->default(now())
+                                ->required(),
+                        ])
+                        ->action(function (Collection $records, array $data): void {
+                            try {
+                                $processedCount = 0;
+                                DB::transaction(function () use ($records, $data, &$processedCount) {
+                                    foreach ($records as $record) {
+                                        $result = $record->lanjutSemester($data['semester_baru_id']);
+                                        if ($result) {
+                                            $processedCount++;
+                                        }
+                                    }
+                                });
+
+                                if ($processedCount > 0) {
+                                    Notification::make()
+                                        ->title('Berhasil')
+                                        ->body("{$processedCount} siswa berhasil dilanjutkan ke semester baru.")
+                                        ->success()
+                                        ->send();
+                                } else {
+                                    Notification::make()
+                                        ->title('Info')
+                                        ->body("Siswa sudah terdaftar di semester tujuan atau tidak ada data yang diproses.")
+                                        ->info()
+                                        ->send();
+                                }
+                            } catch (\Exception $e) {
+                                Notification::make()
+                                    ->title('Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->danger()
+                                    ->send();
+                            }
+                        })
+                        ->deselectRecordsAfterCompletion()
+                        ->requiresConfirmation(),
+
                     BulkAction::make('prosesKenaikanKelas')
                         ->label('Proses Kenaikan/Kelulusan')
                         ->icon('heroicon-o-arrow-trending-up')
                         ->color('success')
-                        ->form([
+                        ->visible(fn() => TahunAjaran::where('is_active', true)->first()?->isSemesterGenap())
+                        ->schema([
+                            Select::make('status_akhir')
+                                ->label('Hasil Akhir di Kelas Ini')
+                                ->options([
+                                    'naik_kelas' => 'Naik Kelas',
+                                    'lulus' => 'Lulus (Alumni)',
+                                ])
+                                ->required()
+                                ->live()
+                                ->default('naik_kelas'),
+
                             Select::make('tahun_ajaran_baru_id')
                                 ->label('Tahun Ajaran Baru')
-                                ->options(fn() => TahunAjaran::where('is_active', false)->pluck('nama', 'id'))
+                                ->options(fn() => TahunAjaran::where('is_active', false)->get()->pluck('nama_semester', 'id'))
                                 ->required()
+                                ->visible(fn(Get $get): bool => $get('status_akhir') === 'naik_kelas')
                                 ->helperText('Pilih tahun ajaran tujuan.'),
 
                             Select::make('target_kelas_id')
                                 ->label('Target Kelas Baru')
                                 ->options(fn() => Kelas::all()->pluck('nama', 'id'))
                                 ->required()
+                                ->visible(fn(Get $get): bool => $get('status_akhir') === 'naik_kelas') // Hanya jika naik kelas
                                 ->helperText('Pilih kelas tujuan untuk siswa yang terpilih.'),
 
-                            Select::make('status_akhir')
-                                ->label('Status Riwayat Lama')
-                                ->options([
-                                    'lulus' => 'Lulus',
-                                    'naik_kelas' => 'Naik Kelas',
-                                ])
-                                ->required()
-                                ->default('lulus'),
+                            Textarea::make('catatan_internal')
+                                ->label('Catatan Kenaikan/Kelulusan')
+                                ->placeholder('Opsional: Masukkan catatan jika diperlukan.'),
                         ])
                         ->action(function (Collection $records, array $data): void {
                             try {
                                 DB::transaction(function () use ($records, $data) {
                                     $successCount = 0;
-                                    $failCount = 0;
 
                                     foreach ($records as $record) {
-                                        try {
-                                            // Memanggil logic naikKelas dari model KelasSiswa
+                                        if ($data['status_akhir'] === 'naik_kelas') {
+                                            // Memanggil logic naikKelas yang sudah disesuaikan di Model
                                             $record->naikKelas(
                                                 $data['tahun_ajaran_baru_id'],
                                                 $data['target_kelas_id']
                                             );
-
-                                            // Opsional: Update status record lama sesuai input form
-                                            $record->update(['status' => $data['status_akhir']]);
-
-                                            $successCount++;
-                                        } catch (\Exception $e) {
-                                            $failCount++;
+                                        } else {
+                                            // Logic untuk kelulusan (Alumni)
+                                            $record->update([
+                                                'status' => 'keluar',
+                                                'hasil_akhir' => 'lulus',
+                                                'tanggal_keluar' => now(),
+                                                'catatan_internal' => $data['catatan_internal'] ?? 'Dinyatakan Lulus.',
+                                            ]);
                                         }
+                                        $successCount++;
                                     }
 
                                     Notification::make()
-                                        ->title('Proses Selesai')
+                                        ->title('Proses Berhasil')
                                         ->success()
-                                        ->body("Berhasil memproses {$successCount} siswa. Gagal: {$failCount}.")
+                                        ->body("Berhasil memproses {$successCount} siswa.")
                                         ->send();
                                 });
                             } catch (\Exception $e) {
                                 Notification::make()
-                                    ->title('Kenaikan Kelas Gagal')
-                                    ->body('Terjadi kesalahan, tidak ada data yang diubah: ' . $e->getMessage())
+                                    ->title('Proses Gagal')
+                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
                                     ->danger()
                                     ->send();
                             }
@@ -206,38 +267,40 @@ class KelasSiswaRelationManager extends RelationManager
                         ->label('Proses Tinggal Kelas')
                         ->icon('heroicon-o-x-circle')
                         ->color('danger')
-                        ->form([
+                        ->visible(fn() => TahunAjaran::where('is_active', true)->first()?->isSemesterGenap())
+                        ->schema([
                             Select::make('tahun_ajaran_baru_id')
                                 ->label('Tahun Ajaran Baru (Tahun Mengulang)')
-                                ->options(fn() => \App\Models\TahunAjaran::where('is_active', false)->pluck('nama', 'id'))
-                                ->required(),
+                                ->options(fn() => TahunAjaran::where('is_active', false)->get()->pluck('nama_semester', 'id'))
+                                ->required()
+                                ->helperText('Pilih tahun di mana siswa akan mengulang.'),
 
-                            Textarea::make('keterangan')
+                            Textarea::make('catatan_internal')
                                 ->label('Alasan Tinggal Kelas')
-                                ->placeholder('Contoh: Nilai tidak memenuhi syarat kelulusan minimal.')
+                                ->placeholder('Contoh: Absensi kurang dari 75% atau nilai di bawah KKM.')
                                 ->required(),
                         ])
                         ->action(function (Collection $records, array $data): void {
                             try {
                                 DB::transaction(function () use ($records, $data) {
                                     foreach ($records as $record) {
-                                        // Menggunakan method tinggalKelas yang sudah ada di model KelasSiswa.php
+                                        // Memanggil method tinggalKelas di model yang sudah diperbarui
                                         $record->tinggalKelas(
                                             $data['tahun_ajaran_baru_id'],
-                                            $data['keterangan']
+                                            $data['catatan_internal']
                                         );
                                     }
                                 });
 
                                 Notification::make()
                                     ->title('Berhasil')
-                                    ->body('Status siswa berhasil diperbarui menjadi tinggal kelas.')
+                                    ->body('Siswa berhasil tercatat tinggal kelas dan didaftarkan ulang pada tahun ajaran berikutnya.')
                                     ->success()
                                     ->send();
                             } catch (\Exception $e) {
                                 Notification::make()
                                     ->title('Gagal')
-                                    ->body('Terjadi kesalahan: ' . $e->getMessage())
+                                    ->body('Kesalahan sistem: ' . $e->getMessage())
                                     ->danger()
                                     ->send();
                             }

@@ -21,7 +21,7 @@ class KelasSiswaResource extends Resource implements HasShieldPermissions
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Penugasan';
+    protected static string|UnitEnum|null $navigationGroup = 'Manajemen Akademik';
 
     protected static ?string $navigationLabel = 'Rombongan Belajar';
 

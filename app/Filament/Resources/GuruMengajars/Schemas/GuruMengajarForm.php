@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\GuruMengajars\Schemas;
 
-use App\Models\Guru;
 use App\Models\TahunAjaran;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class GuruMengajarForm
 {
@@ -16,77 +16,57 @@ class GuruMengajarForm
     {
         return $schema
             ->components([
-                Section::make('Guru Mengajar')
-                    ->description('')
+                Section::make('Detail Penugasan')
+                    ->description('Tentukan parameter penugasan guru pada kelas dan mata pelajaran tertentu.')
                     ->schema([
-                        Select::make('guru_id')
-                            ->label('Guru')
-                            ->options(function () {
-                                return Guru::with('user')
-                                    ->get()
-                                    ->mapWithKeys(function ($guru) {
-                                        return [
-                                            $guru->id => $guru->user?->name ?? "Guru ID: {$guru->id}"
-                                        ];
-                                    })
-                                    ->toArray();
-                            })
-                            ->searchable()
-                            ->required()
-                            ->preload(),
-
-                        Select::make('mapel_id')
-                            ->label('Mata Pelajaran')
-                            ->relationship('mapel', 'nama')
-                            ->searchable()
-                            ->required()
-                            ->preload(),
-
                         Select::make('tahun_ajaran_id')
-                            ->label('Tahun Ajaran')
                             ->relationship('tahunAjaran', 'nama')
-                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn($record) => $record->nama_semester)
+                            ->label('Tahun Ajaran')
                             ->required()
+                            ->searchable()
                             ->preload()
-                            ->options(function () {
-                                return TahunAjaran::where('is_active', true)
-                                    ->pluck('nama', 'id')
-                                    ->toArray();
-                            })
-                            ->default(function () {
-                                // Set default ke tahun ajaran yang aktif
-                                $activeTahunAjaran = TahunAjaran::where('is_active', true)->first();
-                                return $activeTahunAjaran?->id;
-                            }),
-
-                        Select::make('kelas_id')
-                            ->label('Kelas')
-                            ->relationship('kelas', 'nama')
-                            ->searchable()
+                            ->default(fn() => TahunAjaran::getActive()->id),
+                        Select::make('guru_id')
+                            ->relationship('guru', 'id', fn(Builder $query) => $query->with('user'))
+                            ->getOptionLabelFromRecordUsing(fn($record) => $record->user->name)
+                            ->label('Nama Guru')
                             ->required()
+                            ->searchable()
                             ->preload(),
+                        Select::make('kelas_id')
+                            ->relationship('kelas', 'nama')
+                            ->label('Kelas')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                        Select::make('mapel_id')
+                            ->relationship('mapel', 'nama')
+                            ->label('Mata Pelajaran')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                    ]),
 
+                Section::make('Parameter Akademik')
+                    ->schema([
                         TextInput::make('kkm')
                             ->label('KKM')
                             ->numeric()
+                            ->default(75)
                             ->minValue(0)
                             ->maxValue(100)
-                            ->required()
-                            ->default(75),
-
+                            ->required(),
                         TextInput::make('jam_per_minggu')
-                            ->label('Jam Per Minggu')
+                            ->label('Beban Jam (per Minggu)')
                             ->numeric()
-                            ->minValue(1)
-                            ->maxValue(40)
-                            ->required()
-                            ->default(4),
-
+                            ->default(2)
+                            ->required(),
                         Toggle::make('is_active')
-                            ->label('Aktif')
-                            ->default(true),
-                    ])
-                    ->columnSpanFull()
+                            ->label('Status Aktif')
+                            ->default(true)
+                            ->required(),
+                    ]),
             ]);
     }
 }

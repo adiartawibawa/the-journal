@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\TahunAjarans;
 
+use App\Enums\Semester;
 use App\Filament\Resources\TahunAjarans\Pages\ManageTahunAjarans;
 use App\Models\TahunAjaran;
 use BackedEnum;
@@ -84,7 +85,10 @@ class TahunAjaranResource extends Resource
                     ->sortable(),
                 TextColumn::make('semester')
                     ->label('Semester')
-                    ->formatStateUsing(fn($state) => $state == 1 ? 'Ganjil' : 'Genap'),
+                    ->color(fn(Semester $state): string => match ($state) {
+                        Semester::Ganjil => 'warning',
+                        Semester::Genap => 'success',
+                    }),
 
                 TextColumn::make('tanggal_awal')
                     ->label('Mulai')

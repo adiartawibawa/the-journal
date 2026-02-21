@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\GuruMengajars\Tables;
 
+use App\Models\GuruMengajar;
 use App\Models\TahunAjaran;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 
 class GuruMengajarsTable
@@ -17,67 +20,36 @@ class GuruMengajarsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->groups([
+                Group::make('guru.user.name')
+                    ->label('Guru')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('guru.user.name')
             ->columns([
-                TextColumn::make('guru.user.name')
-                    ->label('Nama Guru')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('guru.nuptk')
-                    ->label('NUPTK')
-                    ->searchable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('mapel.nama')
                     ->label('Mata Pelajaran')
-                    ->searchable()
-                    ->sortable(),
+                    ->description(fn(GuruMengajar $record): string => $record->mapel->kode)
+                    ->searchable(),
 
                 TextColumn::make('kelas.nama')
                     ->label('Kelas')
-                    ->searchable()
-                    ->sortable(),
-
-                TextColumn::make('tahunAjaran.nama')
-                    ->label('Tahun Ajaran')
-                    ->searchable()
-                    ->sortable()
-                    ->formatStateUsing(function ($state, $record) {
-                        $tahunAjaran = $record->tahunAjaran;
-                        if ($tahunAjaran && $tahunAjaran->is_active) {
-                            return $state . ' (Aktif)';
-                        }
-                        return $state;
-                    })
-                    ->color(function ($record) {
-                        if ($record->tahunAjaran && $record->tahunAjaran->is_active) {
-                            return 'success';
-                        }
-                        return 'gray';
-                    })
                     ->badge(),
-
-                TextColumn::make('kkm')
-                    ->label('KKM')
-                    ->sortable()
-                    ->alignCenter(),
 
                 TextColumn::make('jam_per_minggu')
                     ->label('Jam/Minggu')
-                    ->sortable()
                     ->alignCenter(),
 
-                TextColumn::make('created_at')
-                    ->label('Dibuat')
-                    ->dateTime('d M Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('kkm')
+                    ->label('KKM')
+                    ->numeric()
+                    ->alignCenter()
+                    ->color(fn(int $state): string => $state < 75 ? 'danger' : 'success'),
 
-                TextColumn::make('updated_at')
-                    ->label('Diupdate')
-                    ->dateTime('d M Y')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')
+                    ->label('Status')
+                    ->boolean()
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('tahun_ajaran_id')
@@ -91,10 +63,7 @@ class GuruMengajarsTable
                             ->pluck('nama', 'id')
                             ->toArray();
                     })
-                    ->default(function () {
-                        $activeTahunAjaran = TahunAjaran::where('is_active', true)->first();
-                        return $activeTahunAjaran?->id;
-                    }),
+                    ->default(fn() => TahunAjaran::getActive()->id),
 
                 SelectFilter::make('kelas_id')
                     ->label('Kelas')
@@ -123,6 +92,8 @@ class GuruMengajarsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ])->defaultSort('created_at', 'desc');
+            ])
+            ->defaultSort('created_at', 'desc')
+            ->emptyStateHeading('Belum ada data penugasan guru');
     }
 }

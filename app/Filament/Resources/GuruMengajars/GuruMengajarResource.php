@@ -24,11 +24,11 @@ class GuruMengajarResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'guru_mengajar';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Penugasan';
+    protected static string|UnitEnum|null $navigationGroup = 'Manajemen Akademik';
 
-    protected static ?string $pluralLabel = 'Guru Mengajar';
+    protected static ?string $pluralLabel = 'Penugasan Guru';
 
-    protected static ?string $navigationLabel = 'Guru Mengajar';
+    protected static ?string $navigationLabel = 'Penugasan Guru';
 
     protected static ?int $navigationSort = 1;
 
@@ -56,5 +56,26 @@ class GuruMengajarResource extends Resource
             'create' => CreateGuruMengajar::route('/create'),
             'edit' => EditGuruMengajar::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        /**
+         * Mengambil jumlah penugasan guru yang aktif pada Tahun Ajaran yang sedang aktif.
+         */
+        return static::getModel()::where('is_active', true)
+            ->whereHas('tahunAjaran', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->count();
+    }
+
+    /**
+     * Memberikan warna pada badge.
+     * warna 'info' atau 'success' digunakan untuk menunjukkan data aktif.
+     */
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'info';
     }
 }

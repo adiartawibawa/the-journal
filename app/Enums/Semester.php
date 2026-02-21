@@ -2,7 +2,9 @@
 
 namespace App\Enums;
 
-enum Semester: string
+use Filament\Support\Contracts\HasLabel;
+
+enum Semester: string implements HasLabel
 {
     case Ganjil = '1';
     case Genap = '2';

@@ -5,20 +5,21 @@ namespace App\Filament\Widgets;
 use App\Models\GuruMengajar;
 use App\Models\TahunAjaran;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class BebanMengajarChart extends ChartWidget
 {
-    protected ?string $heading = 'Distribusi Beban Mengajar (Jam/Minggu)';
+    use InteractsWithPageFilters;
 
-    protected int | string | array $columnSpan = 'full';
+    protected ?string $heading = 'Distribusi Beban Mengajar (Jam/Minggu)';
 
     protected function getData(): array
     {
-        $tahunAktif = TahunAjaran::getActive();
+        $activeTa = TahunAjaran::findOrFail($this->pageFilters['tahun_ajaran_id'] ?? null);
 
         // Mengambil data beban jam per guru
         $data = GuruMengajar::with('guru.user')
-            ->where('tahun_ajaran_id', $tahunAktif?->id)
+            ->where('tahun_ajaran_id', $activeTa->id)
             ->where('is_active', true)
             ->get()
             ->groupBy('guru.user.name')

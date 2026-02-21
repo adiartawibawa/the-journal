@@ -5,16 +5,19 @@ namespace App\Filament\Widgets;
 use App\Models\Kelas;
 use App\Models\KelasSiswa;
 use App\Models\TahunAjaran;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class SiswaStatsOverview extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
     protected function getStats(): array
     {
-        $activeTA = TahunAjaran::where('is_active', true)->first();
+        $activeTa = TahunAjaran::findOrFail($this->pageFilters['tahun_ajaran_id'] ?? null);
 
-        $totalSiswaAktif = KelasSiswa::where('tahun_ajaran_id', $activeTA?->id)
+        $totalSiswaAktif = KelasSiswa::where('tahun_ajaran_id', $activeTa?->id)
             ->where('status', 'aktif')
             ->count();
 
@@ -26,7 +29,7 @@ class SiswaStatsOverview extends BaseWidget
 
         return [
             Stat::make('Siswa Aktif', $totalSiswaAktif)
-                ->description("Tahun Ajaran: {$activeTA?->nama}")
+                ->description("Tahun Ajaran: {$activeTa?->nama_semester}")
                 ->descriptionIcon('heroicon-m-users')
                 ->color('success'),
 

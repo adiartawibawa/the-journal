@@ -4,18 +4,21 @@ namespace App\Filament\Widgets;
 
 use App\Models\GuruMengajar;
 use App\Models\TahunAjaran;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class PenugasanStats extends StatsOverviewWidget
 {
+    use InteractsWithPageFilters;
+
     protected int | string | array $columnSpan = 'full';
 
     protected function getStats(): array
     {
-        $tahunAktif = TahunAjaran::getActive();
+        $activeTa = TahunAjaran::findOrFail($this->pageFilters['tahun_ajaran_id'] ?? null);
 
-        if (!$tahunAktif) {
+        if (!$activeTa) {
             return [
                 Stat::make('Status Akademik', 'Tahun Ajaran Inaktif')
                     ->description('Silahkan aktifkan tahun ajaran')
@@ -23,11 +26,11 @@ class PenugasanStats extends StatsOverviewWidget
             ];
         }
 
-        $totalJam = GuruMengajar::where('tahun_ajaran_id', $tahunAktif->id)
+        $totalJam = GuruMengajar::where('tahun_ajaran_id', $activeTa->id)
             ->where('is_active', true)
             ->sum('jam_per_minggu');
 
-        $totalPenugasan = GuruMengajar::where('tahun_ajaran_id', $tahunAktif->id)
+        $totalPenugasan = GuruMengajar::where('tahun_ajaran_id', $activeTa->id)
             ->where('is_active', true)
             ->count();
 

@@ -5,20 +5,23 @@ namespace App\Filament\Widgets;
 use App\Models\KelasSiswa;
 use App\Models\TahunAjaran;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\DB;
 
 class JurusanChart extends ChartWidget
 {
+    use InteractsWithPageFilters;
+
     protected ?string $heading = 'Distribusi Siswa per Jurusan';
 
     protected function getData(): array
     {
-        $activeTA = TahunAjaran::where('is_active', true)->first();
+        $activeTa = TahunAjaran::findOrFail($this->pageFilters['tahun_ajaran_id'] ?? null);
 
         // Mengambil data jumlah siswa dikelompokkan berdasarkan jurusan di model Kelas
         $data = KelasSiswa::query()
             ->join('kelas', 'kelas_siswa.kelas_id', '=', 'kelas.id')
-            ->where('kelas_siswa.tahun_ajaran_id', $activeTA?->id)
+            ->where('kelas_siswa.tahun_ajaran_id', $activeTa->id)
             ->where('kelas_siswa.status', 'aktif')
             ->select('kelas.jurusan', DB::raw('count(*) as total'))
             ->groupBy('kelas.jurusan')

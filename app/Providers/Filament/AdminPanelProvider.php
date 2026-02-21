@@ -7,6 +7,7 @@ use App\Filament\Widgets\DaftarKelasTanpaWali;
 use App\Filament\Widgets\JurusanChart;
 use App\Filament\Widgets\KelasTanpaWaliStats;
 use App\Filament\Widgets\SiswaStatsOverview;
+use App\Settings\GeneralSettings;
 use Filament\Http\Middleware\Authenticate;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -21,16 +22,31 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
+        $settings = app(GeneralSettings::class);
+
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
+            ->brandName($settings->nama_nama_singkat ?? env('APP_NAME'))
+            ->brandLogo(
+                $settings->logo_sekolah
+                    ? asset(Storage::url($settings->logo_sekolah))
+                    : asset('img/logo.png')
+            )
+            ->brandLogoHeight('3rem')
+            ->favicon(
+                $settings->logo_sekolah
+                    ? asset(Storage::url($settings->logo_sekolah))
+                    : asset('favicon.ico')
+            )
             ->login()
             ->databaseNotifications()
             ->sidebarCollapsibleOnDesktop()

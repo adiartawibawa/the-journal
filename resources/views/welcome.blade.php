@@ -1,3 +1,5 @@
+@inject('settings', 'App\Settings\GeneralSettings')
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
@@ -5,7 +7,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ $settings->nama_sekolah }} | {{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -60,8 +62,14 @@
 
             <div class="relative flex justify-center items-center order-first md:order-last">
                 <div class="blob-bg absolute w-64 h-64 md:w-80 lg:w-96 -z-10 opacity-70"></div>
-                <img src="{{ asset('/img/logo.png') }}" alt="Owl Teacher"
-                    class="w-full max-w-[250px] md:max-w-sm lg:max-w-md drop-shadow-2xl">
+                {{-- Logo --}}
+                @if ($settings->logo_sekolah)
+                    <img src="{{ Storage::url($settings->logo_sekolah) }}" alt="{{ $settings->nama_sekolah }}"
+                        class="w-full max-w-[250px] md:max-w-sm lg:max-w-md drop-shadow-2xl object-contain">
+                @else
+                    <img src="{{ asset('/img/logo.png') }}" alt="Default Logo"
+                        class="w-full max-w-[250px] md:max-w-sm lg:max-w-md drop-shadow-2xl">
+                @endif
             </div>
 
             <div
@@ -75,20 +83,21 @@
 
                 <h3
                     class="text-xl md:text-2xl font-medium text-slate-700 tracking-tight relative z-10 text-center md:text-left">
-                    SMA/SMK Garuda
+                    {{ $settings->nama_sekolah }}
                 </h3>
 
                 <h1
                     class="text-5xl md:text-7xl lg:text-8xl font-bold text-slate-900 leading-none relative z-10 text-center md:text-left">
-                    De' Journal
+                    {{ $settings->nama_singkat ?? "De' Journal" }}
                 </h1>
 
                 <div class="space-y-2 relative z-10 text-center md:text-left flex flex-col items-center md:items-start">
                     <p class="text-lg font-semibold text-slate-800 leading-tight">
-                        Administrasi Rapi, Mengajar Lebih Bermakna.
+                        {{ $settings->motto ?? 'Administrasi Rapi, Mengajar Lebih Bermakna.' }}
                     </p>
                     <p class="text-gray-600 max-w-sm md:max-w-md text-sm md:text-base">
-                        Platform digital untuk mencatat perkembangan siswa dan refleksi harian Anda.
+                        Platform digital resmi {{ $settings->nama_singkat }} untuk mencatat perkembangan siswa dan
+                        refleksi harian Anda.
                     </p>
                 </div>
 
@@ -102,8 +111,11 @@
     </main>
 
     <footer class="w-full py-4 text-center text-[10px] md:text-xs text-gray-400">
-        <p>Copyright © 2026 SMA/SMK Garuda | made with <span class="text-red-500">❤️</span> <a
-                href="wa.me/+6281916175060" target="_blank" class="text-emerald-500">adiartawibawa</a> </p>
+        <p>Copyright © {{ date('Y') }} {{ $settings->nama_sekolah }} | made with <span
+                class="text-red-500">❤️</span>
+            <a href="https://wa.me/+6281916175060" target="_blank"
+                class="text-emerald-500 font-semibold">adiartawibawa</a>
+        </p>
     </footer>
 
 </body>

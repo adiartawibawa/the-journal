@@ -73,18 +73,24 @@ class KelasSiswaResource extends Resource implements HasShieldPermissions
 
     public static function getResourceDescriptor(): string
     {
-        return 'rombongan-belajar';
+        return 'kelas_siswa';
     }
 
     public static function getPermissionPrefixes(): array
     {
         return [
-            'view',
-            'view_any',
-            'create',
-            'update',
-            'delete',
-            'delete_any',
+            'view ',
+            ' view_any ',
+            ' create ',
+            ' update ',
+            ' restore ',
+            ' restore_any ',
+            ' replicate ',
+            ' reorder ',
+            ' delete ',
+            ' delete_any ',
+            ' force_delete ',
+            ' force_delete_any '
         ];
     }
 

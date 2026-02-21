@@ -19,6 +19,13 @@ class Dashboard extends BaseDashboard
 
     use HasFiltersForm;
 
+    // protected function getDefaultFilters(): array
+    // {
+    //     return [
+    //         'tahun_ajaran_id' => TahunAjaran::getActive()?->id,
+    //     ];
+    // }
+
     /**
      * Mendefinisikan struktur form filter di atas widget.
      */
@@ -31,10 +38,9 @@ class Dashboard extends BaseDashboard
                     ->schema([
                         Select::make('tahun_ajaran_id')
                             ->label('Tahun Ajaran')
-                            ->options(TahunAjaran::all()->pluck('nama_semester', 'id'))
-                            ->default(fn() => TahunAjaran::getActive())
+                            ->options(fn() => TahunAjaran::get()->pluck('nama_semester', 'id'))
+                            ->default(fn() => TahunAjaran::getActive()?->id)
                             ->selectablePlaceholder(false)
-                            ->native(false)
                             ->preload(),
                     ])->columnSpanFull(),
             ]);
@@ -51,16 +57,16 @@ class Dashboard extends BaseDashboard
     public function getWidgets(): array
     {
         return [
-            SiswaStatsOverview::class,
-            PenugasanStats::class,
+            // SiswaStatsOverview::class,
+            // PenugasanStats::class,
         ];
     }
 
     protected function getFooterWidgets(): array
     {
         return [
-            JurusanChart::class,
-            BebanMengajarChart::class,
+            // JurusanChart::class,
+            // BebanMengajarChart::class,
         ];
     }
 

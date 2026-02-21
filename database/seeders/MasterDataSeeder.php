@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+use function Symfony\Component\Clock\now;
+
 class MasterDataSeeder extends Seeder
 {
     /**
@@ -181,7 +183,8 @@ class MasterDataSeeder extends Seeder
                     'kelas_id' => $kelasAcak->id,
                     'tahun_ajaran_id' => $ta->id,
                     'status' => 'aktif',
-                    'tanggal_mulai' => now(),
+                    'tanggal_masuk' => now(),
+                    'tanggal_keluar' => now(),
                 ]);
             }
         });

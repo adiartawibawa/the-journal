@@ -172,7 +172,7 @@ class KelasSiswa extends Model
     {
         return $query->where('siswa_id', $siswaId)
             ->with(['kelas', 'tahunAjaran'])
-            ->orderBy('tanggal_mulai', 'desc');
+            ->orderBy('tanggal_masuk', 'desc');
     }
 
     // Atau buat accessor untuk histori
@@ -180,7 +180,7 @@ class KelasSiswa extends Model
     {
         return self::where('siswa_id', $this->siswa_id)
             ->with(['kelas', 'tahunAjaran'])
-            ->orderBy('tanggal_mulai', 'desc')
+            ->orderBy('tanggal_masuk', 'desc')
             ->get()
             ->map(function ($item) {
                 return [

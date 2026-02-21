@@ -19,13 +19,12 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 
 class KelasSiswasTable
 {
     public static function configure(Table $table): Table
     {
-        $activeTaId = TahunAjaran::where('is_active', true)->first()?->id;
+        $activeTaId = TahunAjaran::getActive()->id;
 
         return $table
             ->columns([
@@ -52,14 +51,7 @@ class KelasSiswasTable
                 TextColumn::make('wali_kelas_nama')
                     ->label('Nama Wali')
                     ->getStateUsing(function ($record) {
-                        // Ambil wali kelas berdasarkan TA yang sedang difilter
-                        $currentTaId = request()->input('tableFilters.tahun_ajaran.value')
-                            ?? TahunAjaran::where('is_active', true)->value('id');
-
-                        $wali = $record->waliKelas()
-                            ->where('tahun_ajaran_id', $currentTaId)
-                            ->first();
-
+                        $wali = $record->waliKelas->first();
                         return $wali ? $wali->guru->user->name : '- Belum Ada -';
                     })
                     ->description(fn($record) => $record->waliKelas->first()?->guru?->nuptk ?? 'NUPTK: -')
@@ -78,15 +70,7 @@ class KelasSiswasTable
 
                 TextColumn::make('jumlah_siswa_aktif')
                     ->label('Total Siswa')
-                    ->badge()
-                    ->getStateUsing(function ($record) {
-                        $currentTaId = request()->input('tableFilters.tahun_ajaran.value') ?? TahunAjaran::where('is_active', true)->value('id');
-
-                        return $record->kelasSiswa()
-                            ->where('tahun_ajaran_id', $currentTaId)
-                            ->where('status', 'aktif')
-                            ->count();
-                    }),
+                    ->badge(),
 
                 IconColumn::make('is_active')
                     ->label('Status')
@@ -107,10 +91,10 @@ class KelasSiswasTable
                             ->whereHas('kelasSiswa', fn($q) => $q->where('tahun_ajaran_id', $currentTaId))
                             ->with([
                                 'kelasSiswa' => fn($q) => $q->where('tahun_ajaran_id', $currentTaId)->with('siswa.user'),
-                                'waliKelas' => fn($q) => $q->where('tahun_ajaran_id', $currentTaId)->with('guru.user'),
+                                'waliKelas' => fn($q) => $q->where('tahun_ajaran_id', $currentTaId)->with(['guru.user']),
                             ])
                             ->withCount([
-                                'kelasSiswa as jumlah_siswa' => fn($q) => $q->where('tahun_ajaran_id', $currentTaId)->where('status', 'aktif')
+                                'kelasSiswa as jumlah_siswa_aktif' => fn($q) => $q->where('tahun_ajaran_id', $currentTaId)->where('status', 'aktif')
                             ]);
                     })
                     ->indicateUsing(function (array $data): ?string {
@@ -122,17 +106,14 @@ class KelasSiswasTable
             ->recordActions([
                 Action::make('assignWaliKelas')
                     ->label('Set Wali Kelas')
-                    ->icon('heroicon-o-academic-cap')
+                    ->icon(Heroicon::OutlinedAcademicCap)
                     ->color('warning')
                     ->schema([
                         Select::make('guru_id')
                             ->label('Pilih Guru')
-                            // ->options(
-                            //     fn() => Guru::query()->join('users', 'gurus.user_id', '=', 'users.id')->pluck('users.name', 'gurus.id')
-                            // )
                             ->options(function () {
                                 // Ambil ID Tahun Ajaran (Logika disamakan dengan di action)
-                                $currentTaId = request()->input('tableFilters.tahun_ajaran.value') ?? TahunAjaran::where('is_active', true)->value('id');
+                                $currentTaId = self::getFilteredTahunAjaranId();
 
                                 // Ambil daftar guru_id yang SUDAH menjadi wali kelas di TA tersebut
                                 $assignedGuruIds = WaliKelas::where('tahun_ajaran_id', $currentTaId)
@@ -140,17 +121,30 @@ class KelasSiswasTable
                                     ->toArray();
 
                                 // Tampilkan guru yang belum ter-assign
-                                return Guru::query()
-                                    ->join('users', 'gurus.user_id', '=', 'users.id')
-                                    ->whereNotIn('gurus.id', $assignedGuruIds) // Filter pengecualian
-                                    ->pluck('users.name', 'gurus.id');
+                                return Guru::whereNotIn('id', $assignedGuruIds)
+                                    ->with('user:id,name') // Hanya ambil kolom yang diperlukan
+                                    ->get()
+                                    ->pluck('user.name', 'id');
                             })
                             ->searchable()
-                            ->preload()
+                            ->preload(false)
+                            ->getSearchResultsUsing(function (string $search) {
+                                $currentTaId = self::getFilteredTahunAjaranId();
+
+                                $assignedGuruIds = WaliKelas::where('tahun_ajaran_id', $currentTaId)
+                                    ->pluck('guru_id');
+
+                                return Guru::whereNotIn('id', $assignedGuruIds)
+                                    ->whereHas('user', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                                    ->with('user:id,name')
+                                    ->limit(50) // Batasi hasil pencarian
+                                    ->get()
+                                    ->pluck('user.name', 'id');
+                            })
                             ->required()
                     ])
                     ->action(function (array $data, Model $record): void {
-                        $currentTaId = request()->input('tableFilters.tahun_ajaran.value') ?? TahunAjaran::where('is_active', true)->value('id');
+                        $currentTaId = self::getFilteredTahunAjaranId();
 
                         if (! $currentTaId) {
                             Notification::make()
@@ -162,12 +156,10 @@ class KelasSiswasTable
                         }
 
                         try {
-                            DB::transaction(function () use ($data, $record, $currentTaId) {
-                                WaliKelas::updateOrCreate(
-                                    ['kelas_id' => $record->id, 'tahun_ajaran_id' => $currentTaId,],
-                                    ['guru_id' => $data['guru_id'], 'is_active' => true,]
-                                );
-                            });
+                            WaliKelas::updateOrCreate(
+                                ['kelas_id' => $record->id, 'tahun_ajaran_id' => $currentTaId],
+                                ['guru_id' => $data['guru_id'], 'is_active' => true]
+                            );
 
                             Notification::make()
                                 ->title('Berhasil')
@@ -194,5 +186,10 @@ class KelasSiswasTable
                 ]),
             ])
             ->defaultSort('nama', 'asc');
+    }
+
+    private static function getFilteredTahunAjaranId()
+    {
+        return request()->input('tableFilters.tahun_ajaran.value') ?? TahunAjaran::getActive()->id;
     }
 }

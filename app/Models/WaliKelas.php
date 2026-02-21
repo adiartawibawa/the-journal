@@ -34,4 +34,21 @@ class WaliKelas extends Model
     {
         return $this->belongsTo(TahunAjaran::class, 'tahun_ajaran_id');
     }
+
+    protected static function booted()
+    {
+        static::saving(function ($waliKelas) {
+            if ($waliKelas->is_active) {
+                $conflict = static::where('tahun_ajaran_id', $waliKelas->tahun_ajaran_id)
+                    ->where('kelas_id', $waliKelas->kelas_id)
+                    ->where('is_active', true)
+                    ->where('id', '!=', $waliKelas->id)
+                    ->exists();
+
+                if ($conflict) {
+                    throw new \Exception("Kelas ini sudah memiliki Wali Kelas aktif.");
+                }
+            }
+        });
+    }
 }

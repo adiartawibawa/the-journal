@@ -2,7 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\DaftarKelasTanpaWali;
 use App\Filament\Widgets\JurusanChart;
+use App\Filament\Widgets\KelasTanpaWaliStats;
 use App\Filament\Widgets\SiswaStatsOverview;
 use Filament\Http\Middleware\Authenticate;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
@@ -46,6 +48,8 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
                 SiswaStatsOverview::class, // Taruh di atas
                 JurusanChart::class,
+                KelasTanpaWaliStats::class,
+                DaftarKelasTanpaWali::class,
             ])
             ->middleware([
                 EncryptCookies::class,

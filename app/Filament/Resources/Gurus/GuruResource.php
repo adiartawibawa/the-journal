@@ -5,6 +5,8 @@ namespace App\Filament\Resources\Gurus;
 use App\Filament\Resources\Gurus\Pages\CreateGuru;
 use App\Filament\Resources\Gurus\Pages\EditGuru;
 use App\Filament\Resources\Gurus\Pages\ListGurus;
+use App\Filament\Resources\Gurus\RelationManagers\TugasMengajarRelationManager;
+use App\Filament\Resources\Gurus\RelationManagers\WaliKelasRelationManager;
 use App\Filament\Resources\Gurus\Schemas\GuruForm;
 use App\Filament\Resources\Gurus\Tables\GurusTable;
 use App\Models\Guru;
@@ -47,7 +49,8 @@ class GuruResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            WaliKelasRelationManager::class,
+            TugasMengajarRelationManager::class,
         ];
     }
 

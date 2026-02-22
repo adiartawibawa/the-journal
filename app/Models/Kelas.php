@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Kelas extends Model
 {
@@ -43,6 +44,28 @@ class Kelas extends Model
     public function kelasSiswa(): HasMany
     {
         return $this->hasMany(KelasSiswa::class, 'kelas_id');
+    }
+
+    /**
+     * Akses langsung ke daftar Siswa melalui tabel perantara KelasSiswa.
+     * Format: HasManyThrough(Target, Perantara, foreignKeyPerantara, foreignKeyTarget, localKeyKelas, localKeyPerantara)
+     */
+    public function siswas(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Siswa::class,
+            KelasSiswa::class,
+            'kelas_id',    // Foreign key di tabel kelas_siswa
+            'id',          // Foreign key di tabel siswa (ID siswa itu sendiri)
+            'id',          // Local key di tabel kelas
+            'siswa_id'     // Local key di tabel kelas_siswa
+        );
+    }
+
+    // Relasi: Satu kelas memiliki banyak entri jurnal (dari berbagai mapel)
+    public function jurnals(): HasMany
+    {
+        return $this->hasMany(Jurnal::class);
     }
 
     public function waliKelas(): HasMany

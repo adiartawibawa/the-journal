@@ -42,6 +42,11 @@ class TahunAjaran extends Model
         return $this->hasMany(KelasSiswa::class, 'tahun_ajaran_id');
     }
 
+    public function jurnals(): HasMany
+    {
+        return $this->hasMany(Jurnal::class);
+    }
+
     public function isSemesterGenap(): bool
     {
         return $this->semester === Semester::Genap;

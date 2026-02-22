@@ -24,6 +24,17 @@ return new class extends SettingsMigration
         $this->migrator->add('general.email', '');
         $this->migrator->add('general.website', '');
 
+        // Akademik
+        $this->migrator->add('general.jam_pelajaran_per_hari', [
+            'Monday'    => 10,
+            'Tuesday'   => 10,
+            'Wednesday' => 10,
+            'Thursday'  => 10,
+            'Friday'    => 5,
+            'Saturday'  => 0,
+            'Sunday'    => 0,
+        ]);
+
         // Akreditasi
         $this->migrator->add('general.akreditasi_status', 'A');
         $this->migrator->add('general.akreditasi_sk', '');

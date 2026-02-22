@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Mapel extends Model
 {
@@ -37,5 +38,10 @@ class Mapel extends Model
             ->using(GuruMengajar::class)
             ->withPivot('id', 'tahun_ajaran_id', 'kelas_id', 'kkm')
             ->withTimestamps();
+    }
+
+    public function jurnals(): HasMany
+    {
+        return $this->hasMany(Jurnal::class);
     }
 }

@@ -1,0 +1,189 @@
+<?php
+
+namespace App\Filament\Resources\Jurnals\Schemas;
+
+use App\Models\GuruMengajar;
+use App\Models\Kelas;
+use App\Models\Mapel;
+use App\Models\TahunAjaran;
+use App\Settings\GeneralSettings;
+use Carbon\Carbon;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
+
+class JurnalForm
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Informasi Utama')
+                    ->description('Detail waktu dan pengajar')
+                    ->schema([
+                        Select::make('tahun_ajaran_id')
+                            ->relationship('tahunAjaran', 'nama', fn(Builder $query) => $query->where('is_active', true))
+                            ->default(fn() => TahunAjaran::getActive()?->id)
+                            ->required()
+                            ->searchable(),
+
+                        DatePicker::make('tanggal')
+                            ->default(now())
+                            ->required()
+                            ->live(),
+
+                        CheckboxList::make('jam_ke')
+                            ->label('Jam Pelajaran')
+                            ->options(function (Get $get, GeneralSettings $settings) {
+                                $tanggal = $get('tanggal');
+                                if (!$tanggal) return [];
+
+                                // Mengambil nama hari berdasarkan tanggal terpilih
+                                $hari = Carbon::parse($tanggal)->format('l');
+
+                                // Mengambil jumlah jam dari GeneralSettings
+                                $jumlahJam = $settings->jam_pelajaran_per_hari[$hari] ?? 0;
+
+                                if ($jumlahJam <= 0) return [];
+
+                                return collect(range(1, $jumlahJam))
+                                    ->mapWithKeys(fn($i) => [$i => "Jam ke-{$i}"])
+                                    ->toArray();
+                            })
+                            ->columns(2)
+                            ->required()
+                            ->bulkToggleable()
+                            ->descriptions(function (Get $get, GeneralSettings $settings) {
+                                $tanggal = $get('tanggal');
+                                if (!$tanggal) return [];
+
+                                $hari = Carbon::parse($tanggal)->format('l');
+                                $jumlahJam = $settings->jam_pelajaran_per_hari[$hari] ?? 0;
+
+                                // Mengembalikan array yang memetakan jam_ke ke deskripsi spesifik
+                                return collect(range(1, $jumlahJam))
+                                    ->mapWithKeys(fn($i) => [$i => "Durasi jam pelajaran ke-{$i}"])
+                                    ->toArray();
+                            }),
+                    ]),
+
+                Section::make('Detail Kegiatan Belajar Mengajar')
+                    ->schema([
+                        Select::make('guru_id')
+                            ->relationship('guru', 'id')
+                            ->getOptionLabelFromRecordUsing(fn($record) => $record->user->name)
+                            ->searchable()
+                            ->default(fn() => Auth::user()->profileGuru?->id)
+                            ->disabled(fn() => !Auth::user()->hasRole(['super_admin', 'admin']))
+                            ->dehydrated() // Tetap dikirim ke database meski disabled
+                            ->preload()
+                            ->required(),
+
+                        Grid::make(2)
+                            ->schema([
+                                Select::make('kelas_id')
+                                    ->label('Kelas')
+                                    ->options(function (Get $get) {
+                                        $user = Auth::user();
+                                        $tahunAjaranAktif = TahunAjaran::getActive();
+
+                                        if (!$tahunAjaranAktif) {
+                                            return [];
+                                        }
+
+                                        // Jika Admin/Super Admin, tampilkan semua kelas aktif
+                                        if ($user->hasAnyRole(['super_admin', 'admin'])) {
+                                            return Kelas::active()->pluck('nama', 'id');
+                                        }
+
+                                        /** * Mengambil kelas dari tabel pivot guru_mengajar (jadwalMengajar)
+                                         * yang sesuai dengan guru dan tahun ajaran aktif.
+                                         */
+                                        return GuruMengajar::query()
+                                            ->where('guru_id', $user->profileGuru?->id)
+                                            ->where('tahun_ajaran_id', $tahunAjaranAktif->id)
+                                            ->where('is_active', true)
+                                            ->with('kelas')
+                                            ->get()
+                                            ->pluck('kelas.nama', 'kelas_id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->live() // Memastikan perubahan memicu reaktifitas jika diperlukan field lain
+                                    ->afterStateUpdated(fn(Set $set) => $set('mapel_id', null)), // Reset mapel jika kelas berubah
+
+                                Select::make('mapel_id')
+                                    ->label('Mata Pelajaran')
+                                    ->options(function (Get $get) {
+                                        $kelasId = $get('kelas_id');
+                                        $user = Auth::user();
+
+                                        if (!$kelasId) return [];
+
+                                        if ($user->hasAnyRole(['super_admin', 'admin'])) {
+                                            return Mapel::active()->pluck('nama', 'id');
+                                        }
+
+                                        return GuruMengajar::query()
+                                            ->where('guru_id', $user->profileGuru?->id)
+                                            ->where('kelas_id', $kelasId)
+                                            ->where('tahun_ajaran_id', TahunAjaran::getActive()?->id)
+                                            ->with('mapel')
+                                            ->get()
+                                            ->pluck('mapel.nama', 'mapel_id');
+                                    })
+                                    ->required()
+                                    ->searchable(),
+                            ]),
+
+                        TextInput::make('materi')
+                            ->required()
+                            ->placeholder('Contoh: Persamaan Linear Satu Variabel'),
+
+                        Textarea::make('kegiatan')
+                            ->required()
+                            ->rows(4),
+                    ]),
+
+                Section::make('Absensi')
+                    ->schema([
+                        KeyValue::make('absensi')
+                            ->helperText('Contoh: Budi (Sakit), Iwan (Alpha)')
+                            ->keyLabel('Nama Siswa')
+                            ->valueLabel('Keterangan'),
+                    ]),
+
+                Section::make('Lampiran & Verifikasi')
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('foto_kegiatan')
+                            ->collection('foto_kegiatan')
+                            ->multiple()
+                            ->image()
+                            ->columnSpanFull(),
+
+                        Toggle::make('status_verifikasi')
+                            ->label('Verifikasi Jurnal')
+                            ->visible(fn() => Auth::user()->hasRole(['super_admin', 'admin']))
+                            ->default(false),
+
+                        Textarea::make('keterangan')
+                            ->visible(fn() => Auth::user()->hasRole(['super_admin', 'admin']))
+                            ->label('Catatan Tambahan'),
+                    ]),
+            ]);
+    }
+}

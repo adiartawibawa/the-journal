@@ -69,7 +69,27 @@ class ManageGeneralSetApp extends SettingsPage
                                     ]),
                             ]),
 
-                        // TAB 2: KONTAK & LOKASI
+                        // TAB 2: AKADEMIK
+                        Tab::make('Akademik')
+                            ->icon(Heroicon::OutlinedDocumentCheck)
+                            ->schema([
+                                Section::make('Konfigurasi Jam Pelajaran')
+                                    ->description('Tentukan jumlah jam pelajaran maksimal untuk tiap hari dalam seminggu.')
+                                    ->schema([
+                                        Grid::make(7)
+                                            ->schema([
+                                                TextInput::make('jam_pelajaran_per_hari.Monday')->label('Sen')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Tuesday')->label('Sel')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Wednesday')->label('Rab')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Thursday')->label('Kam')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Friday')->label('Jum')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Saturday')->label('Sab')->numeric(),
+                                                TextInput::make('jam_pelajaran_per_hari.Sunday')->label('Min')->numeric(),
+                                            ])
+                                    ])
+                            ]),
+
+                        // TAB 3: KONTAK & LOKASI
                         Tab::make('Kontak & Lokasi')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
@@ -95,7 +115,7 @@ class ManageGeneralSetApp extends SettingsPage
                                     ]),
                             ]),
 
-                        // TAB 3: AKREDITASI & PIMPINAN
+                        // TAB 4: AKREDITASI & PIMPINAN
                         Tab::make('Akreditasi & Pimpinan')
                             ->icon('heroicon-o-academic-cap')
                             ->schema([
@@ -117,7 +137,7 @@ class ManageGeneralSetApp extends SettingsPage
                                     ]),
                             ]),
 
-                        // TAB 4: VISUAL & LAPORAN
+                        // TAB 5: VISUAL & LAPORAN
                         Tab::make('Visual & Laporan')
                             ->icon('heroicon-o-photo')
                             ->schema([

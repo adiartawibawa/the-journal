@@ -47,15 +47,15 @@ class UsersTable
                     ->separator(',')
                     ->formatStateUsing(fn($state) => $state ?? 'No Role'),
 
-                TextColumn::make('profileGuru.nama_lengkap')
-                    ->label('Nama Guru')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
+                // TextColumn::make('profileGuru.nama_lengkap')
+                //     ->label('Nama Guru')
+                //     ->toggleable(isToggledHiddenByDefault: true)
+                //     ->searchable(),
 
-                TextColumn::make('profileSiswa.nama_lengkap')
-                    ->label('Nama Siswa')
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
+                // TextColumn::make('profileSiswa.nama_lengkap')
+                //     ->label('Nama Siswa')
+                //     ->toggleable(isToggledHiddenByDefault: true)
+                //     ->searchable(),
 
                 TextColumn::make('created_at')
                     ->label('Dibuat')

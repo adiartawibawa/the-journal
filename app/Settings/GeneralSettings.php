@@ -26,6 +26,9 @@ class GeneralSettings extends Settings
     public ?string $email;
     public ?string $website;
 
+    // Akademik
+    public array $jam_pelajaran_per_hari;
+
     // Akreditasi
     public string $akreditasi_status;
     public ?string $akreditasi_sk;

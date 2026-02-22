@@ -49,6 +49,12 @@ class Guru extends Model
         return $this->hasMany(GuruMengajar::class, 'guru_id', 'id');
     }
 
+    // Relasi: Satu guru memiliki banyak catatan jurnal mengajar
+    public function jurnals(): HasMany
+    {
+        return $this->hasMany(Jurnal::class);
+    }
+
     // assesor
     public function getNameAttribute()
     {

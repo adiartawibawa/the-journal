@@ -101,10 +101,14 @@
                     </p>
                 </div>
 
-                <a href="{{ route('filament.admin.pages.dashboard') }}"
-                    class="w-full md:w-auto text-center bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg cursor-pointer relative z-10">
-                    Ayo Mulai!
-                </a>
+                <div class="inline-flex items-center gap-4">
+                    <a href="{{ route('filament.admin.pages.dashboard') }}"
+                        class="w-full md:w-auto text-center bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl font-medium transition-all transform hover:scale-105 shadow-lg cursor-pointer relative z-10">
+                        Ayo Mulai!
+                    </a>
+
+                    <a href="{{ route('faq') }}" target="_blank">FAQ</a>
+                </div>
             </div>
 
         </div>

@@ -6,6 +6,7 @@ use App\Traits\HasMultitenancy;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -111,6 +112,11 @@ class Jurnal extends Model implements HasMedia
     public function kelas(): BelongsTo
     {
         return $this->belongsTo(Kelas::class);
+    }
+
+    public function absensiSiswas(): HasMany
+    {
+        return $this->hasMany(AbsensiSiswa::class, 'jurnal_id');
     }
 
     /**

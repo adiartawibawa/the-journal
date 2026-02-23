@@ -20,5 +20,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Models\KelasSiswa::observe(\App\Observers\KelasSiswaObserver::class);
+        \App\Models\Jurnal::observe(\App\Observers\JurnalObserver::class);
     }
 }

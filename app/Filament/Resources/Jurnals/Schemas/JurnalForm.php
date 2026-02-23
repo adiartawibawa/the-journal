@@ -5,12 +5,15 @@ namespace App\Filament\Resources\Jurnals\Schemas;
 use App\Models\GuruMengajar;
 use App\Models\Kelas;
 use App\Models\Mapel;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Settings\GeneralSettings;
 use Carbon\Carbon;
+use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
@@ -21,6 +24,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
@@ -159,12 +163,62 @@ class JurnalForm
                             ->rows(4),
                     ]),
 
-                Section::make('Absensi')
+                Section::make('Absensi Siswa')
+                    ->headerActions([
+                        Action::make('panggilPresensi')
+                            ->label('Panggil Presensi')
+                            ->icon('heroicon-m-users')
+                            ->color('success')
+                            ->schema([
+                                // Masih Salah
+                                Repeater::make('temp_presensi')
+                                    ->label('Daftar Siswa Tidak Hadir')
+                                    ->schema([
+                                        Select::make('siswa_name')
+                                            ->label('Nama Siswa')
+                                            ->options(function (Get $get) {
+                                                $kelasId = $get('kelas_id');
+                                                dd($kelasId);
+                                                if (!$kelasId) return [];
+
+                                                return Siswa::whereHas(
+                                                    'kelasSiswa',
+                                                    fn($q) =>
+                                                    $q->where('kelas_id', $kelasId)
+                                                        ->where('status', 'aktif')
+                                                        ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true))
+                                                )->with('user')->get()->pluck('user.name', 'user.name');
+                                            })
+                                            ->searchable()
+                                            ->required(),
+                                        Select::make('status')
+                                            ->options([
+                                                'Sakit' => 'Sakit',
+                                                'Izin' => 'Izin',
+                                                'Alpha' => 'Alpha',
+                                            ])->required(),
+                                    ])
+                                    ->columns(2)
+                                    ->itemLabel(fn($state) => $state['siswa_name'] ?? 'Pilih Siswa')
+                            ])
+                            ->action(function (array $data, Set $set) {
+                                // Konversi data repeater menjadi format KeyValue [Nama => Status]
+                                $formatted = collect($data['temp_presensi'])
+                                    ->filter(fn($item) => !empty($item['siswa_name']))
+                                    ->pluck('status', 'siswa_name')
+                                    ->toArray();
+
+                                $set('absensi', $formatted);
+                            })
+                    ])
                     ->schema([
                         KeyValue::make('absensi')
-                            ->helperText('Contoh: Budi (Sakit), Iwan (Alpha)')
+                            ->label('Ringkasan Ketidakhadiran')
                             ->keyLabel('Nama Siswa')
-                            ->valueLabel('Keterangan'),
+                            ->valueLabel('Keterangan')
+                            ->addable(true)
+                            ->deletable(true)
+                            ->helperText('Gunakan tombol "Panggil Presensi" di pojok kanan atas untuk input cepat.'),
                     ]),
 
                 Section::make('Lampiran & Verifikasi')

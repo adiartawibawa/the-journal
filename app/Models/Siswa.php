@@ -63,6 +63,11 @@ class Siswa extends Model
             ->orderBy('created_at', 'desc');
     }
 
+    public function riwayatAbsensi(): HasMany
+    {
+        return $this->hasMany(AbsensiSiswa::class, 'siswa_id');
+    }
+
     /**
      * Mendapatkan kelas aktif siswa untuk tahun ajaran tertentu
      */

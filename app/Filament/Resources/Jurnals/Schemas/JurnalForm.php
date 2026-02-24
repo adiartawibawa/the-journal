@@ -7,11 +7,13 @@ use App\Models\Kelas;
 use App\Models\Mapel;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Models\User;
 use App\Settings\GeneralSettings;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -24,8 +26,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
-use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 class JurnalForm
@@ -99,7 +101,7 @@ class JurnalForm
                             ->schema([
                                 Select::make('kelas_id')
                                     ->label('Kelas')
-                                    ->options(function (Get $get) {
+                                    ->options(function () {
                                         $user = Auth::user();
                                         $tahunAjaranAktif = TahunAjaran::getActive();
 
@@ -166,57 +168,112 @@ class JurnalForm
                 Section::make('Absensi Siswa')
                     ->headerActions([
                         Action::make('panggilPresensi')
-                            ->label('Panggil Presensi')
                             ->icon('heroicon-m-users')
                             ->color('success')
-                            ->schema([
-                                // Masih Salah
-                                Repeater::make('temp_presensi')
-                                    ->label('Daftar Siswa Tidak Hadir')
-                                    ->schema([
-                                        Select::make('siswa_name')
-                                            ->label('Nama Siswa')
-                                            ->options(function (Get $get) {
-                                                $kelasId = $get('kelas_id');
-                                                dd($kelasId);
-                                                if (!$kelasId) return [];
+                            ->modalWidth('4xl')
+                            ->fillForm(function (Get $schemaGet, ?Model $record = null) {
+                                $kelasId = $schemaGet('kelas_id');
+                                if (!$kelasId) {
+                                    return ['temp_presensi' => []];
+                                }
 
-                                                return Siswa::whereHas(
-                                                    'kelasSiswa',
-                                                    fn($q) =>
-                                                    $q->where('kelas_id', $kelasId)
-                                                        ->where('status', 'aktif')
-                                                        ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true))
-                                                )->with('user')->get()->pluck('user.name', 'user.name');
-                                            })
-                                            ->searchable()
-                                            ->required(),
+                                // 1. Ambil data absensi yang sudah tersimpan di record Jurnal (jika ada)
+                                // Format di DB: ["Nama Siswa" => "Sakit (Izin Lomba)"]
+                                $existingAbsensi = $record?->absensi ?? [];
+
+                                $siswas = Siswa::query()
+                                    ->with('user')
+                                    ->active()
+                                    ->whereHas('kelasSiswa', function ($q) use ($kelasId) {
+                                        $q->where('kelas_id', $kelasId)->where('status', 'aktif');
+                                    })
+                                    ->orderBy(User::select('name')->whereColumn('users.id', 'siswas.user_id'))
+                                    ->get();
+
+                                $tempPresensi = $siswas->map(function ($siswa) use ($existingAbsensi) {
+                                    $namaSiswa = $siswa->name;
+                                    $statusRaw = $existingAbsensi[$namaSiswa] ?? 'Hadir';
+
+                                    // 2. Pecah string "Status (Keterangan)" kembali ke komponennya
+                                    // Contoh: "Sakit (Izin Lomba)" -> status: Sakit, keterangan: Izin Lomba
+                                    preg_match('/^([^\(]+)(?:\s\((.*)\))?$/', $statusRaw, $matches);
+
+                                    $status = trim($matches[1] ?? 'Hadir');
+                                    $keterangan = $matches[2] ?? null;
+
+                                    return [
+                                        'siswa_id'   => $siswa->id,
+                                        'nama_siswa' => $namaSiswa,
+                                        'status'     => $status,
+                                        'keterangan' => $keterangan,
+                                    ];
+                                })->values()->toArray();
+
+                                return [
+                                    'temp_presensi' => $tempPresensi,
+                                ];
+                            })
+                            ->schema([
+                                Repeater::make('temp_presensi')
+                                    ->label('Daftar Presensi Siswa')
+                                    ->itemLabel(
+                                        fn(array $state): ?string => ($state['nama_siswa'] ?? 'Siswa') . " — [" . ($state['status'] ?? 'Hadir') . "]"
+                                    )
+                                    ->addable(false) // Guru tidak boleh tambah baris manual
+                                    ->deletable(false) // Guru tidak boleh hapus baris
+                                    ->reorderable(false)
+                                    ->collapsed()
+                                    ->columns(3) // Membuat layout menyamping (Siswa | Status | Keterangan)
+                                    ->schema([
+                                        Hidden::make('siswa_id')
+                                            ->dehydrated(),
+
+                                        TextInput::make('nama_siswa')
+                                            ->label('Nama Siswa')
+                                            ->disabled()
+                                            ->dehydrated(),
+
                                         Select::make('status')
+                                            ->label('Status')
                                             ->options([
+                                                'Hadir' => 'Hadir',
                                                 'Sakit' => 'Sakit',
                                                 'Izin' => 'Izin',
                                                 'Alpha' => 'Alpha',
-                                            ])->required(),
-                                    ])
-                                    ->columns(2)
-                                    ->itemLabel(fn($state) => $state['siswa_name'] ?? 'Pilih Siswa')
+                                            ])
+                                            ->live()
+                                            ->required()
+                                            ->native(false),
+
+                                        TextInput::make('keterangan')
+                                            ->label('Catatan')
+                                            ->placeholder('Contoh: Izin Lomba'),
+                                    ]),
                             ])
                             ->action(function (array $data, Set $set) {
-                                // Konversi data repeater menjadi format KeyValue [Nama => Status]
+                                // Format: [ "Nama Siswa" => "Status (Keterangan)" ]
                                 $formatted = collect($data['temp_presensi'])
-                                    ->filter(fn($item) => !empty($item['siswa_name']))
-                                    ->pluck('status', 'siswa_name')
+                                    ->filter(fn($item) => $item['status'] !== 'Hadir') // Hanya ambil yang tidak hadir
+                                    ->mapWithKeys(function ($item) {
+                                        $statusFinal = $item['status'];
+                                        if (!empty($item['keterangan'])) {
+                                            $statusFinal .= " (" . $item['keterangan'] . ")";
+                                        }
+                                        return [$item['nama_siswa'] => $statusFinal];
+                                    })
                                     ->toArray();
 
                                 $set('absensi', $formatted);
-                            })
+                            }),
                     ])
                     ->schema([
                         KeyValue::make('absensi')
                             ->label('Ringkasan Ketidakhadiran')
                             ->keyLabel('Nama Siswa')
                             ->valueLabel('Keterangan')
-                            ->addable(true)
+                            ->editableValues(false)
+                            ->editableKeys(false)
+                            ->addable(false)
                             ->deletable(true)
                             ->helperText('Gunakan tombol "Panggil Presensi" di pojok kanan atas untuk input cepat.'),
                     ]),

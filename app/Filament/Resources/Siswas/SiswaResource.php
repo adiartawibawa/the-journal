@@ -9,6 +9,7 @@ use App\Filament\Resources\Siswas\Schemas\SiswaForm;
 use App\Filament\Resources\Siswas\Tables\SiswasTable;
 use App\Models\Siswa;
 use BackedEnum;
+use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -45,6 +46,7 @@ class SiswaResource extends Resource
     {
         return [
             RelationManagers\RiwayatStatusRelationManager::class,
+            RelationManagers\RiwayatAbsensiRelationManager::class,
         ];
     }
 

@@ -5,7 +5,9 @@ namespace App\Filament\Resources\Jurnals;
 use App\Filament\Resources\Jurnals\Pages\CreateJurnal;
 use App\Filament\Resources\Jurnals\Pages\EditJurnal;
 use App\Filament\Resources\Jurnals\Pages\ListJurnals;
+use App\Filament\Resources\Jurnals\Pages\ViewJurnal;
 use App\Filament\Resources\Jurnals\Schemas\JurnalForm;
+use App\Filament\Resources\Jurnals\Schemas\JurnalInfolist;
 use App\Filament\Resources\Jurnals\Tables\JurnalsTable;
 use App\Models\Jurnal;
 use BackedEnum;
@@ -38,6 +40,11 @@ class JurnalResource extends Resource
         return JurnalForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return JurnalInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return JurnalsTable::configure($table);
@@ -56,6 +63,7 @@ class JurnalResource extends Resource
             'index' => ListJurnals::route('/'),
             'create' => CreateJurnal::route('/create'),
             'edit' => EditJurnal::route('/{record}/edit'),
+            'view' => ViewJurnal::route('/{record}'),
         ];
     }
 

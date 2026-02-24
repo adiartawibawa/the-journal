@@ -10,23 +10,32 @@ class JurnalObserver
 {
     public function saved(Jurnal $jurnal): void
     {
-        // Hapus data absensi lama untuk jurnal ini (agar sinkron saat update)
+        // Hapus data absensi lama untuk jurnal ini (agar tidak duplikat saat edit)
         $jurnal->absensiSiswas()->delete();
 
-        // 2. Ambil data dari kolom JSON 'absensi'
-        // Format JSON: {"Nama Siswa": "Status", ...}
-        $dataAbsensi = $jurnal->absensi ?? [];
+        // Jika ada data di kolom JSON 'absensi'
+        if ($jurnal->absensi && is_array($jurnal->absensi)) {
+            foreach ($jurnal->absensi as $namaSiswa => $info) {
+                // Cari ID Siswa berdasarkan Nama (melalui relasi User)
+                $siswa = Siswa::whereHas('user', function ($q) use ($namaSiswa) {
+                    $q->where('name', $namaSiswa);
+                })->first();
 
-        foreach ($dataAbsensi as $namaSiswa => $status) {
-            // Cari ID siswa berdasarkan nama (atau bisa disesuaikan jika JSON menyimpan ID)
-            $siswa = Siswa::whereHas('user', fn($q) => $q->where('name', $namaSiswa))->first();
+                if ($siswa) {
+                    // Ekstrak Status dan Keterangan dari string "Sakit (Izin Lomba)"
+                    // Regex untuk memisahkan teks di luar kurung dan di dalam kurung
+                    preg_match('/^(.*?)(?:\s\((.*?)\))?$/', $info, $matches);
 
-            if ($siswa) {
-                AbsensiSiswa::create([
-                    'jurnal_id' => $jurnal->id,
-                    'siswa_id'  => $siswa->id,
-                    'status'    => $status,
-                ]);
+                    $status = trim($matches[1] ?? $info);
+                    $keterangan = $matches[2] ?? null;
+
+                    AbsensiSiswa::create([
+                        'jurnal_id' => $jurnal->id,
+                        'siswa_id'  => $siswa->id,
+                        'status'    => $status,
+                        'keterangan' => $keterangan,
+                    ]);
+                }
             }
         }
     }

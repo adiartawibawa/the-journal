@@ -9,12 +9,11 @@ use App\Models\Role;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-
-use function Symfony\Component\Clock\now;
 
 class MasterDataSeeder extends Seeder
 {
@@ -27,11 +26,19 @@ class MasterDataSeeder extends Seeder
 
             $faker = \Faker\Factory::create('id_ID');
             $daftarKelas = [];
+            $savedMapels = [];
 
-            // 1. Buat Role
-            $adminRole   = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-            $teacherRole = Role::firstOrCreate(['name' => 'teacher', 'guard_name' => 'web']);
-            $studentRole = Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+            // 1. Ambil Role yang sudah dibuat oleh RolePermissionSeeder
+            // Pastikan RolePermissionSeeder dijalankan sebelum MasterDataSeeder
+            try {
+                $superAdminRole = Role::findByName('super_admin', 'web');
+                $adminRole      = Role::findByName('admin', 'web');
+                $teacherRole    = Role::findByName('teacher', 'web');
+                $studentRole    = Role::findByName('student', 'web');
+            } catch (\Spatie\Permission\Exceptions\RoleDoesNotExist $e) {
+                // Berikan pesan error yang informatif jika role belum ada
+                throw new \Exception("Role tidak ditemukan. Pastikan Anda sudah menjalankan RolePermissionSeeder terlebih dahulu.");
+            }
 
             // 2. Tahun Ajaran Aktif
             $ta = TahunAjaran::create([
@@ -61,7 +68,7 @@ class MasterDataSeeder extends Seeder
                             'nama' => "Kelas {$t} {$kodeJurusan} {$p}",
                             'tingkat' => $t,
                             'jurusan' => $kodeJurusan,
-                            'kapasitas' => 36, // Standar rombel SMK
+                            'kapasitas' => 36,
                         ]);
                     }
                 }
@@ -104,7 +111,16 @@ class MasterDataSeeder extends Seeder
                 ]);
             }
 
-            // 5. SEED ADMIN
+            // 5. SEED USERS UTAMA
+            // Super Admin
+            $super = User::create([
+                'name' => 'Super Administrator',
+                'email' => 'superadmin@dejournal.test',
+                'password' => Hash::make('password'),
+            ]);
+            $super->assignRole($superAdminRole);
+
+            // Admin
             $admin = User::create([
                 'name' => 'Administrator',
                 'email' => 'admin@dejournal.test',
@@ -113,26 +129,22 @@ class MasterDataSeeder extends Seeder
             $admin->assignRole($adminRole);
 
             // 6. SEED 50 GURU
-            for ($i = 1; $i <= 50; $i++) {
-
-                $namaGuru = $faker->name();
-
+            foreach (range(1, 50) as $i) {
                 $userGuru = User::create([
-                    'name' => $namaGuru,
+                    'name' => $faker->name(),
                     'email' => "guru{$i}@dejournal.test",
                     'password' => Hash::make('password'),
                 ]);
-
                 $userGuru->assignRole($teacherRole);
 
                 $guru = Guru::create([
                     'user_id' => $userGuru->id,
                     'nuptk' => $faker->numerify('################'),
-                    'status_kepegawaian' => $faker->randomElement(['PNS', 'PPPK', 'Guru Honor', 'Staff Honor', 'Kontrak']),
+                    'status_kepegawaian' => $faker->randomElement(['PNS', 'PPPK', 'Guru Honor', 'Kontrak']),
                 ]);
 
-                // Acak Guru menjadi Wali Kelas di salah satu kelas
-                if ($i <= count($daftarKelas)) {
+                // Wali Kelas (Maksimal sebanyak jumlah kelas yang ada)
+                if (isset($daftarKelas[$i - 1])) {
                     $guru->waliKelas()->create([
                         'id' => Str::uuid(),
                         'kelas_id' => $daftarKelas[$i - 1]->id,
@@ -141,7 +153,9 @@ class MasterDataSeeder extends Seeder
                     ]);
                 }
 
-                foreach (array_rand($savedMapels, 2) as $key) {
+                // Relasi Guru Mengajar (Masing-masing guru mengajar 2 mapel acak)
+                $mapelKeys = array_rand($savedMapels, 2);
+                foreach ($mapelKeys as $key) {
                     DB::table('guru_mengajar')->insert([
                         'id' => Str::uuid(),
                         'guru_id' => $guru->id,
@@ -151,19 +165,16 @@ class MasterDataSeeder extends Seeder
                         'kkm' => 75,
                         'jam_per_minggu' => 4,
                         'is_active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'created_at' => Carbon::now(),
+                        'updated_at' => Carbon::now(),
                     ]);
                 }
             }
 
             // 7. SEED 350 SISWA
-            for ($j = 1; $j <= 350; $j++) {
-
-                $namaSiswa = $faker->name();
-
+            foreach (range(1, 350) as $j) {
                 $userSiswa = User::create([
-                    'name' => $namaSiswa,
+                    'name' => $faker->name(),
                     'email' => "siswa{$j}@dejournal.test",
                     'password' => Hash::make('password'),
                 ]);
@@ -177,14 +188,12 @@ class MasterDataSeeder extends Seeder
 
                 // Masukkan Siswa ke Kelas Secara Acak
                 $kelasAcak = $daftarKelas[array_rand($daftarKelas)];
-
                 $siswa->kelasSiswa()->create([
                     'id' => Str::uuid(),
                     'kelas_id' => $kelasAcak->id,
                     'tahun_ajaran_id' => $ta->id,
                     'status' => 'aktif',
-                    'tanggal_masuk' => now(),
-                    'tanggal_keluar' => now(),
+                    'tanggal_masuk' => Carbon::now()->subMonths(6),
                 ]);
             }
         });

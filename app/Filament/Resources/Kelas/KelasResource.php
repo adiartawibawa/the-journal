@@ -5,9 +5,7 @@ namespace App\Filament\Resources\Kelas;
 use App\Filament\Resources\Kelas\Pages\CreateKelas;
 use App\Filament\Resources\Kelas\Pages\EditKelas;
 use App\Filament\Resources\Kelas\Pages\ListKelas;
-use App\Filament\Resources\Kelas\Pages\ViewKelas;
 use App\Filament\Resources\Kelas\Schemas\KelasForm;
-use App\Filament\Resources\Kelas\Schemas\KelasInfolist;
 use App\Filament\Resources\Kelas\Tables\KelasTable;
 use App\Models\Kelas;
 use BackedEnum;
@@ -15,10 +13,22 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class KelasResource extends Resource
 {
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->hasRole('super_admin') || !$user->hasRole('admin')) {
+            return false;
+        }
+
+        return true;
+    }
+
     protected static ?string $model = Kelas::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

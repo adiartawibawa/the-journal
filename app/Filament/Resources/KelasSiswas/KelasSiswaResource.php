@@ -21,7 +21,16 @@ class KelasSiswaResource extends Resource implements HasShieldPermissions
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Manajemen Akademik';
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $authUser = Auth::user();
+
+        if ($authUser && $authUser->hasRole('teacher')) {
+            return 'Manajemen Perwalian';
+        }
+
+        return 'Manajemen Akademik';
+    }
 
     protected static ?string $navigationLabel = 'Rombongan Belajar';
 
@@ -93,9 +102,4 @@ class KelasSiswaResource extends Resource implements HasShieldPermissions
             ' force_delete_any '
         ];
     }
-
-    // public static function canViewAny(): bool
-    // {
-    //     return Auth::user()->can('view_any_kelas_siswa');
-    // }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasUserScope;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 class Kelas extends Model
 {
     use HasUuids;
+    use HasUserScope;
 
     protected $table = 'kelas';
 

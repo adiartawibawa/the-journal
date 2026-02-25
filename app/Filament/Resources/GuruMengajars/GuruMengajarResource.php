@@ -14,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class GuruMengajarResource extends Resource
@@ -24,7 +25,16 @@ class GuruMengajarResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'guru_mengajar';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Manajemen Akademik';
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $authUser = Auth::user();
+
+        if ($authUser && $authUser->hasRole('teacher')) {
+            return 'Kegiatan Belajar Mengajar';
+        }
+
+        return 'Manajemen Akademik';
+    }
 
     protected static ?string $pluralLabel = 'Penugasan Guru';
 

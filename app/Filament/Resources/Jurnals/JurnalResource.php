@@ -17,6 +17,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class JurnalResource extends Resource
@@ -34,6 +35,17 @@ class JurnalResource extends Resource
     protected static ?string $pluralLabel = 'Jurnal Mengajar';
 
     protected static ?string $recordTitleAttribute = 'materi';
+
+    public static function getNavigationSort(): ?int
+    {
+        $authUser = Auth::user();
+
+        if ($authUser && $authUser->hasRole('teacher')) {
+            return 1;
+        }
+
+        return 2;
+    }
 
     public static function form(Schema $schema): Schema
     {

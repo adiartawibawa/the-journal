@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasUserScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 class GuruMengajar extends Pivot
 {
     use HasUuids;
+    use HasUserScope;
 
     protected $table = 'guru_mengajar';
 

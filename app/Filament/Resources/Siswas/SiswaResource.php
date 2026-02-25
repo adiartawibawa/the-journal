@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
 class SiswaResource extends Resource
@@ -24,9 +25,27 @@ class SiswaResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Data Utama';
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $authUser = Auth::user();
 
-    protected static ?string $navigationLabel = 'Siswa';
+        if ($authUser && $authUser->hasRole('teacher')) {
+            return 'Manajemen Perwalian';
+        }
+
+        return 'Data Utama';
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        $authUser = Auth::user();
+
+        if ($authUser && $authUser->hasRole('teacher')) {
+            return 'Siswa Perwalian';
+        }
+
+        return 'Siswa';
+    }
 
     protected static ?string $pluralLabel = 'Siswa';
 

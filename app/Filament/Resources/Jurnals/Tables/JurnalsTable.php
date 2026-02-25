@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Jurnals\Tables;
 use App\Filament\Resources\Jurnals\Schemas\JurnalInfolist;
 use App\Models\Jurnal;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -20,6 +21,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class JurnalsTable
@@ -85,22 +87,24 @@ class JurnalsTable
             ])
             ->recordActions([
                 Action::make('print')
-                    ->label('Cetak Jurnal')
+                    ->label('Cetak PDF')
                     ->icon('heroicon-m-printer')
                     ->color('success')
-                    ->modalHeading('Pratinjau Cetak Jurnal')
-                    ->modalSubmitActionLabel('Unduh PDF / Cetak')
-                    // Menampilkan pratinjau data menggunakan Infolist yang sudah kita buat
-                    // ->infolist(fn(Infolist $infolist) => JurnalInfolist::configure($infolist))
-                    ->action(function (Jurnal $record) {
-                        // Logika export PDF akan diletakkan di sini
-                        // Contoh: return response()->streamDownload(...)
-                    }),
+                    ->url(fn(Jurnal $record): string => route('jurnal.print', $record))
+                    ->openUrlInNewTab(),
                 ViewAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('print_selected')
+                        ->label('Cetak Laporan Terpilih')
+                        ->icon('heroicon-m-printer')
+                        ->color('success')
+                        ->action(function (Collection $records) {
+                            session()->put('print_ids', $records->pluck('id')->toArray());
+                            return redirect()->route('jurnal.print.bulk');
+                        })->openUrlInNewTab(),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),

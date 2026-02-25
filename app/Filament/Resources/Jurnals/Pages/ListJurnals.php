@@ -61,11 +61,4 @@ class ListJurnals extends ListRecords
                 ->modifyQueryUsing(fn($query) => $query->whereMonth('tanggal', Carbon::now()->month)),
         ];
     }
-
-    protected function getHeaderWidgets(): array
-    {
-        return [
-            JurnalPeriodicStats::class,
-        ];
-    }
 }

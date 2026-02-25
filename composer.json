@@ -12,7 +12,8 @@
         "filament/spatie-laravel-media-library-plugin": "^4.0",
         "filament/spatie-laravel-settings-plugin": "^4.0",
         "laravel/framework": "^12.0",
-        "laravel/tinker": "^2.10.1"
+        "laravel/tinker": "^2.10.1",
+        "spatie/browsershot": "^5.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

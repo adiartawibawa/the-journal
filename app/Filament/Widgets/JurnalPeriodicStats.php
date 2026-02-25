@@ -16,13 +16,6 @@ class JurnalPeriodicStats extends StatsOverviewWidget
 
     protected ?string $heading = 'Statistik Jurnal Mengajar';
     protected static ?int $sort = 4;
-    protected int | string | array $columnSpan = [
-        'default' => 1,
-        'sm' => 2,
-        'md' => 1,
-        'lg' => 1,
-        'xl' => 1,
-    ];
 
     // Polling interval untuk update real-time (opsional)
     protected  ?string $pollingInterval = '30s';

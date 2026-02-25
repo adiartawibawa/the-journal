@@ -22,7 +22,7 @@ class KelasResource extends Resource
     {
         $user = Auth::user();
 
-        if (!$user || !$user->hasRole('super_admin') || !$user->hasRole('admin')) {
+        if (!$user || $user->hasRole('teacher') || $user->hasRole('student')) {
             return false;
         }
 

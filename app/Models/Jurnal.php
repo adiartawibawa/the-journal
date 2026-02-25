@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\HasMultitenancy;
 use App\Traits\HasUserScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +17,6 @@ class Jurnal extends Model implements HasMedia
     use HasUuids, SoftDeletes;
     use InteractsWithMedia;
     use HasUserScope;
-    // use HasMultitenancy;
 
     protected $fillable = [
         'tahun_ajaran_id',

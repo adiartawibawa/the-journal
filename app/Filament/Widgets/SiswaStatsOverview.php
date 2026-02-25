@@ -13,34 +13,95 @@ class SiswaStatsOverview extends BaseWidget
 {
     use InteractsWithPageFilters;
 
+    protected static ?int $sort = 0;
+
     protected function getStats(): array
     {
-        $activeTa = TahunAjaran::findOrFail($this->pageFilters['tahun_ajaran_id'] ?? null);
+        $tahunAjaranId = $this->pageFilters['tahun_ajaran_id'] ?? TahunAjaran::getActive()?->id;
 
-        $totalSiswaAktif = KelasSiswa::where('tahun_ajaran_id', $activeTa?->id)
-            ->where('status', 'aktif')
-            ->count();
+        if (!$tahunAjaranId) {
+            return $this->getEmptyStats();
+        }
 
-        $totalKapasitas = Kelas::where('is_active', true)->sum('kapasitas');
+        $activeTa = TahunAjaran::find($tahunAjaranId);
+
+        if (!$activeTa) {
+            return $this->getEmptyStats();
+        }
+
+        // Menggunakan model Kelas untuk menghitung statistik
+        $kelasAktif = Kelas::active()->get();
+
+        $totalKelas = $kelasAktif->count();
+        $totalKapasitas = $kelasAktif->sum('kapasitas');
+
+        // Menghitung total siswa aktif menggunakan method dari model Kelas
+        $totalSiswaAktif = collect($kelasAktif)->sum(function ($kelas) use ($activeTa) {
+            return $kelas->kelasSiswa()
+                ->where('status', 'aktif')
+                ->where('tahun_ajaran_id', $activeTa->id)
+                ->count();
+        });
 
         $persentaseKetersediaan = $totalKapasitas > 0
             ? round(($totalSiswaAktif / $totalKapasitas) * 100, 1)
             : 0;
 
+        // Menghitung kelas dengan kapasitas kritis (< 10% sisa)
+        $kelasKritis = $kelasAktif->filter(function ($kelas) use ($activeTa) {
+            $sisa = $kelas->kapasitas - $kelas->kelasSiswa()
+                ->where('status', 'aktif')
+                ->where('tahun_ajaran_id', $activeTa->id)
+                ->count();
+            return $sisa < ceil($kelas->kapasitas * 0.1); // Sisa < 10% kapasitas
+        })->count();
+
         return [
-            Stat::make('Siswa Aktif', $totalSiswaAktif)
-                ->description("Tahun Ajaran: {$activeTa?->nama_semester}")
+            Stat::make('Total Siswa Aktif', number_format($totalSiswaAktif))
+                ->description("T.A. {$activeTa->nama_semester}")
                 ->descriptionIcon('heroicon-m-users')
-                ->color('success'),
+                ->color('success')
+                ->chart([$totalSiswaAktif, $totalKapasitas]),
 
-            Stat::make('Okupansi Kelas', "{$persentaseKetersediaan}%")
+            Stat::make('Okupansi Kelas', $persentaseKetersediaan . '%')
                 ->description("Terpakai {$totalSiswaAktif} dari {$totalKapasitas} kursi")
-                ->chart([7, 3, 4, 5, 6, 3, $persentaseKetersediaan])
-                ->color($persentaseKetersediaan > 90 ? 'danger' : 'info'),
+                ->descriptionIcon('heroicon-m-chart-pie')
+                ->color($this->getOccupancyColor($persentaseKetersediaan))
+                ->chart([$persentaseKetersediaan, 100 - $persentaseKetersediaan]),
 
-            Stat::make('Total Kelas Aktif', Kelas::where('is_active', true)->count())
-                ->description('Kelas terdaftar di sistem')
-                ->descriptionIcon('heroicon-m-academic-cap'),
+            Stat::make('Kondisi Kelas', "{$kelasKritis} Kelas Kritis")
+                ->description("{$totalKelas} total kelas aktif")
+                ->descriptionIcon($kelasKritis > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
+                ->color($kelasKritis > 0 ? 'warning' : 'success'),
         ];
+    }
+
+    protected function getEmptyStats(): array
+    {
+        return [
+            Stat::make('Total Siswa Aktif', 'N/A')
+                ->description('Pilih tahun ajaran terlebih dahulu')
+                ->descriptionIcon('heroicon-m-exclamation-triangle')
+                ->color('warning'),
+
+            Stat::make('Okupansi Kelas', '0%')
+                ->description('Belum ada data')
+                ->color('gray'),
+
+            Stat::make('Kondisi Kelas', '0 Kelas Kritis')
+                ->description('0 total kelas aktif')
+                ->color('gray'),
+        ];
+    }
+
+    protected function getOccupancyColor(float $percentage): string
+    {
+        return match (true) {
+            $percentage >= 95 => 'danger',   // Penuh sesak
+            $percentage >= 80 => 'warning',  // Hampir penuh
+            $percentage >= 50 => 'success',  // Optimal
+            $percentage >= 25 => 'info',     // Cukup
+            default => 'gray',                // Sepi
+        };
     }
 }

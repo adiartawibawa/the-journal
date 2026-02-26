@@ -107,7 +107,7 @@
                         Ayo Mulai!
                     </a>
 
-                    <a href="{{ route('faq') }}" target="_blank">FAQ</a>
+                    <a href="{{ route('faq') }}" target="_blank" class="text-slate-600">FAQ</a>
                 </div>
             </div>
 

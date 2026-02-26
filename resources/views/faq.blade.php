@@ -78,17 +78,18 @@
                 <h1 class="text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">Ada yang bisa kami bantu?</h1>
                 <p class="text-emerald-50 text-lg opacity-90 max-w-2xl mx-auto">
                     Temukan panduan dan jawaban cepat seputar penggunaan platform <span
-                        class="font-semibold text-white underline decoration-emerald-400">De' Journal</span>.
+                        class="font-semibold text-white underline decoration-emerald-400">{{ $settings->nama_singkat ?: config('app.name') }}</span>.
                 </p>
             </div>
         </section>
 
-        <div class="max-w-7xl mx-auto px-6 lg:px-12  py-12 -mt-12 relative z-20">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12  py-12 mt-8 relative z-20">
             <div class="space-y-4">
                 @php
+                    $appName = $settings->nama_singkat ?: config('app.name');
                     $faqs = [
                         [
-                            'q' => "Bagaimana cara mendapatkan akun De' Journal?",
+                            'q' => "Bagaimana cara mendapatkan akun {$appName}?",
                             'a' =>
                                 'Akun dibuatkan secara terpusat oleh Admin IT atau Bagian Kurikulum. Anda akan menerima kredensial login setelah data Anda diinput ke dalam sistem resmi sekolah.',
                         ],
@@ -99,8 +100,7 @@
                         ],
                         [
                             'q' => 'Apakah data siswa tahun lalu akan tetap ada?',
-                            'a' =>
-                                "Ya. De' Journal mengadopsi sistem arsip permanen. Data histori nilai, kehadiran, dan catatan siswa tetap tersimpan aman berdasarkan Tahun Ajaran masing-masing.",
+                            'a' => "Ya. {$appName} mengadopsi sistem arsip permanen. Data histori nilai, kehadiran, dan catatan siswa tetap tersimpan aman berdasarkan Tahun Ajaran masing-masing.",
                         ],
                         [
                             'q' => 'Bagaimana cara mencetak laporan jurnal harian?',
@@ -117,7 +117,7 @@
 
                 @foreach ($faqs as $index => $item)
                     <div
-                        class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-md active:scale-[0.99]">
+                        class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden transition-all duration-300 hover:shadow-md active:scale-[0.99]">
                         <button @click="active = (active === {{ $index }} ? null : {{ $index }})"
                             class="w-full px-6 py-5 text-left flex justify-between items-center group focus:outline-none">
                             <span class="font-bold text-slate-700 group-hover:text-emerald-600 transition-colors">
@@ -147,7 +147,7 @@
             </div>
 
             <div
-                class="mt-12 bg-white/60 backdrop-blur-md rounded-[2rem] p-8 border border-emerald-100 text-center shadow-sm">
+                class="mt-12 bg-white/60 backdrop-blur-md rounded-lg p-8 border border-emerald-100 text-center shadow-sm">
                 <h3 class="text-xl font-bold text-slate-800 italic">Masih memerlukan bantuan teknis?</h3>
                 <p class="text-slate-500 text-sm mb-8 mt-2 max-w-md mx-auto">Tim Helpdesk kami siap membantu Anda setiap
                     hari kerja pukul 08:00 - 15:00 WITA.</p>

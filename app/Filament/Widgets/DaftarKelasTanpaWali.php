@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class DaftarKelasTanpaWali extends TableWidget
 {
+    use HasWidgetShield;
     use InteractsWithPageFilters;
 
     protected static ?string $heading = 'Daftar Kelas Belum Berwali (Tahun Ajaran Aktif)';

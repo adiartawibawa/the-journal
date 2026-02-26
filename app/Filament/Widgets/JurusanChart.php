@@ -4,11 +4,13 @@ namespace App\Filament\Widgets;
 
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 
 class JurusanChart extends ChartWidget
 {
+    use HasWidgetShield;
     use InteractsWithPageFilters;
 
     protected ?string $heading = 'Distribusi Siswa per Jurusan';

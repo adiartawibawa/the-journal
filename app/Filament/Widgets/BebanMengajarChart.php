@@ -4,12 +4,14 @@ namespace App\Filament\Widgets;
 
 use App\Models\GuruMengajar;
 use App\Models\TahunAjaran;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\ChartWidget;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\Log;
 
 class BebanMengajarChart extends ChartWidget
 {
+    use HasWidgetShield;
     use InteractsWithPageFilters;
 
     protected ?string $heading = 'Distribusi Beban Mengajar (Jam/Minggu)';

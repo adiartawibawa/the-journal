@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Jurnal;
 use App\Models\TahunAjaran;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Carbon\Carbon;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class JurnalPeriodicStats extends StatsOverviewWidget
 {
+    use HasWidgetShield;
     use InteractsWithPageFilters;
 
     protected ?string $heading = 'Statistik Jurnal Mengajar';

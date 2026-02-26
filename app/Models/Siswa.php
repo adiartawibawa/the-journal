@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class Siswa extends Model
 {
@@ -108,6 +109,38 @@ class Siswa extends Model
         }
 
         return $query->first();
+    }
+
+    public static function getAbsensiStats($tahunAjaranId = null): array
+    {
+        // $user = Auth::user();
+        // Query dasar Siswa sudah terfilter oleh UserDataScope jika Guru/Siswa
+        $query = self::query()->active();
+
+        // Filter berdasarkan Tahun Ajaran dari Page Filter
+        if ($tahunAjaranId) {
+            $query->whereHas('kelasSiswa', fn($q) => $q->where('tahun_ajaran_id', $tahunAjaranId));
+        }
+
+        // Ambil semua ID siswa yang masuk dalam scope user
+        $siswaIds = $query->pluck('id');
+
+        // Hitung status absensi dari tabel AbsensiSiswa
+        $stats = AbsensiSiswa::whereIn('siswa_id', $siswaIds)
+            ->when($tahunAjaranId, function ($q) use ($tahunAjaranId) {
+                $q->whereHas('jurnal', fn($j) => $j->where('tahun_ajaran_id', $tahunAjaranId));
+            })
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        return [
+            // 'Hadir' => $stats['Hadir'] ?? 0,
+            'Sakit' => $stats['Sakit'] ?? 0,
+            'Izin'  => $stats['Izin'] ?? 0,
+            'Alpha' => $stats['Alpha'] ?? 0,
+        ];
     }
 
     /**

@@ -5,12 +5,14 @@ namespace App\Filament\Widgets;
 use App\Models\GuruMengajar;
 use App\Models\Kelas;
 use App\Models\TahunAjaran;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class PenugasanStats extends StatsOverviewWidget
 {
+    use HasWidgetShield;
     use InteractsWithPageFilters;
 
     protected static ?int $sort = 1;

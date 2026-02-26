@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\AbsensiSiswaOverview;
 use App\Filament\Widgets\BebanMengajarChart;
+use App\Filament\Widgets\DaftarAbsensiSiswa;
 use App\Filament\Widgets\DaftarKelasTanpaWali;
 use App\Filament\Widgets\JurnalPeriodicStats;
 use App\Filament\Widgets\JurusanChart;
@@ -59,6 +61,8 @@ class Dashboard extends BaseDashboard
             PenugasanStats::class,
             KelasTanpaWaliStats::class,
             JurusanChart::class,
+            // AbsensiSiswaOverview::class,
+            // DaftarAbsensiSiswa::class,
             BebanMengajarChart::class,
             JurnalPeriodicStats::class,
             DaftarKelasTanpaWali::class,

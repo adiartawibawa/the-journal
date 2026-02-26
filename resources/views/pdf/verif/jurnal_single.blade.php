@@ -37,7 +37,7 @@
     <div class="flex items-start border-b-4 border-emerald-900 pb-4 mb-6">
         @if ($settings->logo_sekolah)
             <div class="flex-shrink-0">
-                <img src="{{ storage_path('app/public/' . $settings->logo_sekolah) }}" class="w-28 h-28 object-contain">
+                <img src="{{ Storage::url($settings->logo_sekolah) }}" class="w-28 h-28 object-contain">
             </div>
         @endif
         <div class="flex-1 text-center px-4">
@@ -117,7 +117,7 @@
             <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach ($jurnal->getMedia('foto_kegiatan') as $index => $media)
                     <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                        <img src="{{ $media->getPath() }}"
+                        <img src="{{ $media->getUrl() }}"
                             class="w-full h-48 object-cover hover:scale-105 transition duration-300"
                             alt="Dokumentasi Kegiatan">
                     </div>

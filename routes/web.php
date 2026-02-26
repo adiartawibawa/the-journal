@@ -17,3 +17,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/jurnal/{record}/print', [JurnalPrintController::class, 'printSingle'])->name('jurnal.print');
     Route::get('/jurnal/print-bulk', [JurnalPrintController::class, 'printBulk'])->name('jurnal.print.bulk');
 });
+
+Route::get('/v/{jurnal:id}', [JurnalPrintController::class, 'publicView'])->name('jurnal.public.view');
+Route::get('/v/bulk', [JurnalPrintController::class, 'publicBulkView'])->name('jurnal.public.bulk');

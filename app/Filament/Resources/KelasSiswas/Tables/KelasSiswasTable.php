@@ -19,6 +19,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class KelasSiswasTable
 {
@@ -27,6 +28,22 @@ class KelasSiswasTable
         $activeTaId = TahunAjaran::getActive()->id;
 
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = Auth::user();
+
+                // Jika user adalah teacher, batasi hanya kelas perwaliannya saja
+                if ($user->hasRole('teacher')) {
+                    $guruId = $user->profileGuru?->id;
+
+                    return $query->whereHas('waliKelas', function ($q) use ($guruId) {
+                        $q->where('guru_id', $guruId);
+                        // tambahkan filter agar hanya perwalian di tahun ajaran aktif
+                        $q->where('is_active', true);
+                    });
+                }
+
+                return $query;
+            })
             ->columns([
                 TextColumn::make('kode')
                     ->searchable()
@@ -108,6 +125,7 @@ class KelasSiswasTable
                     ->label('Set Wali Kelas')
                     ->icon(Heroicon::OutlinedAcademicCap)
                     ->color('warning')
+                    ->visible(fn() => Auth::user()->hasRole(['super_admin', 'admin']))
                     ->schema([
                         Select::make('guru_id')
                             ->label('Pilih Guru')
@@ -176,7 +194,7 @@ class KelasSiswasTable
                     }),
 
                 ViewAction::make()
-                    ->label('Kelola Siswa')
+                    ->label(fn(): bool => !Auth::user()->hasRole(['super_admin', 'admin']) ? 'Lihat Siswa' : 'Kelola Siswa')
                     ->icon(Heroicon::OutlinedUserGroup)
                     ->color('primary'),
             ])

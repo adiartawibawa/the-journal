@@ -19,6 +19,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class SiswasTable
@@ -26,6 +27,19 @@ class SiswasTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function (Builder $query) {
+                $user = Auth::user();
+                // Jika user adalah teacher, batasi hanya kelas perwaliannya saja
+                if ($user->hasRole('teacher')) {
+                    $guruId = $user->profileGuru?->id;
+                    return $query->whereHas('kelasSiswa.kelas.waliKelas', function ($q) use ($guruId) {
+                        $q->where('guru_id', $guruId);
+                        // tambahkan filter agar hanya perwalian di tahun ajaran aktif
+                        $q->where('is_active', true);
+                    });
+                }
+                return $query;
+            })
             ->columns([
                 TextColumn::make('nisn')
                     ->label('NISN')

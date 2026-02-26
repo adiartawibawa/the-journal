@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -117,6 +118,22 @@ class Jurnal extends Model implements HasMedia
     public function absensiSiswas(): HasMany
     {
         return $this->hasMany(AbsensiSiswa::class, 'jurnal_id');
+    }
+
+    /**
+     * Menghitung total jurnal yang relevan bagi user yang sedang login
+     * Digunakan untuk Navigation Badge di Filament
+     */
+    public static function getCountForNavBadge(): int
+    {
+        $user = Auth::user();
+        $query = self::query();
+        // Filter tambahan untuk memastikan hanya Tahun Ajaran Aktif
+        $query->whereHas('tahunAjaran', function ($q) {
+            $q->where('is_active', true);
+        });
+
+        return $query->count();
     }
 
     /**

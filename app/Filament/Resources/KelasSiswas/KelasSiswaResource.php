@@ -69,8 +69,7 @@ class KelasSiswaResource extends Resource implements HasShieldPermissions
 
     public static function getNavigationBadge(): ?string
     {
-        // Mengambil jumlah total secara global
-        $total = (int) static::getModel()::totalSiswaAktif();
+        $total = (int) static::getModel()::totalKelasPerwalian();
 
         return $total > 0 ? (string) $total : null;
     }

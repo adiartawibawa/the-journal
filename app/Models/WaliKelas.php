@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasUserScope;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WaliKelas extends Model
 {
     use HasUuids;
+    use HasUserScope;
 
     protected $table = 'wali_kelas';
 

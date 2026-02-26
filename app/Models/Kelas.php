@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\Auth;
 
 class Kelas extends Model
 {
@@ -74,20 +75,55 @@ class Kelas extends Model
         return $this->hasMany(WaliKelas::class, 'kelas_id');
     }
 
+    public function guruMengajar(): HasMany
+    {
+        return $this->hasMany(GuruMengajar::class, 'kelas_id');
+    }
+
     /**
-     * METHOD STATIC
+     * Digunakan untuk Badge Navigasi (Menghitung total kelas perwalian)
+     */
+    public static function totalKelasPerwalian(): int
+    {
+        $user = Auth::user();
+        $query = self::query()->active();
+
+        // Jika user adalah guru, batasi hanya kelas yang ia pimpin (Wali Kelas)
+        if ($user && $user->hasRole('teacher')) {
+            $guruId = $user->profileGuru?->id;
+
+            $query->whereHas('waliKelas', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId)
+                    ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true));
+            });
+        }
+
+        // Jika Admin/Super Admin, ini akan mengembalikan jumlah semua kelas aktif
+        return $query->count();
+    }
+
+    /**
      * Digunakan untuk Badge Navigasi (Menghitung total siswa di semua kelas)
      */
     public static function totalSiswaAktif(): int
     {
-        return self::query()
-            ->whereHas('kelasSiswa', function ($query) {
-                $query->where('status', 'aktif')
-                    ->whereHas('tahunAjaran', fn($q) => $q->where('is_active', true));
-            })
-            ->withCount(['kelasSiswa as total' => function ($query) {
-                $query->where('status', 'aktif')
-                    ->whereHas('tahunAjaran', fn($q) => $q->where('is_active', true));
+        $user = Auth::user();
+        $query = self::query();
+
+        // Jika user adalah guru, paksa filter hanya untuk perwalian saja
+        if ($user->hasRole('teacher')) {
+            $guruId = $user->profileGuru?->id;
+
+            $query->whereHas('waliKelas', function ($q) use ($guruId) {
+                $q->where('guru_id', $guruId)
+                    ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true));
+            });
+        }
+
+        return (int) $query
+            ->withCount(['kelasSiswa as total' => function ($q) {
+                $q->where('status', 'aktif')
+                    ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true));
             }])
             ->get()
             ->sum('total');

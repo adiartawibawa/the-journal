@@ -86,4 +86,14 @@ class JurnalResource extends Resource
                 SoftDeletingScope::class,
             ]);
     }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return (string) static::getModel()::getCountForNavBadge();
+    }
+
+    public static function getNavigationBadgeColor(): ?string
+    {
+        return 'primary';
+    }
 }

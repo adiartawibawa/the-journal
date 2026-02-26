@@ -91,6 +91,7 @@ class JurnalsTable
                     ->icon('heroicon-m-printer')
                     ->color('success')
                     ->url(fn(Jurnal $record): string => route('jurnal.print', $record))
+                    // ->url(fn(Jurnal $record): string => dd($record))
                     ->openUrlInNewTab(),
                 ViewAction::make(),
                 EditAction::make(),
@@ -109,6 +110,7 @@ class JurnalsTable
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->striped();
     }
 }

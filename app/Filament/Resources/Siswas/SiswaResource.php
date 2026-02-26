@@ -80,6 +80,11 @@ class SiswaResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::active()->count();
+        // return (string) static::getModel()::query()
+        //     ->active()
+        //     ->count();
+        $total = (int) static::getModel()::countSiswaAktifByRole();
+
+        return $total > 0 ? (string) $total : null;
     }
 }

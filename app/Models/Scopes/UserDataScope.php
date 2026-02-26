@@ -2,6 +2,8 @@
 
 namespace App\Models\Scopes;
 
+use App\Models\Kelas;
+use App\Models\KelasSiswa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
@@ -27,20 +29,36 @@ class UserDataScope implements Scope
         // Logika untuk Guru
         if ($user->hasRole('teacher')) {
             $guruId = $user->profileGuru?->id;
-            // Cek apakah tabel model saat ini punya kolom 'guru_id'
-            if (Schema::hasColumn($model->getTable(), 'guru_id')) {
+
+            if (!$guruId) return;
+
+            $tableName = $model->getTable();
+
+            // Jika model memiliki kolom guru_id langsung (GuruMengajar, WaliKelas)
+            if (Schema::hasColumn($tableName, 'guru_id')) {
                 $builder->where('guru_id', $guruId);
             }
-            // Khusus model Siswa dengan filter berdasarkan Wali Kelas
-            elseif ($model->getTable() === 'siswas') {
-                $builder->whereHas('kelasSiswa.kelas.waliKelas', function ($query) use ($guruId) {
-                    $query->where('guru_id', $guruId)
-                        ->where('is_active', true);
+
+            // Isolasi untuk model Kelas
+            elseif ($model instanceof Kelas) {
+                $builder->where(function ($q) use ($guruId) {
+                    // Filter: Kelas di mana guru tersebut adalah Wali Kelas
+                    $q->whereHas('waliKelas', function ($query) use ($guruId) {
+                        $query->where('guru_id', $guruId);
+                    })
+                        // ATAU Kelas di mana guru tersebut mengajar mata pelajaran
+                        ->orWhereHas('guruMengajar', function ($query) use ($guruId) {
+                            $query->where('guru_id', $guruId);
+                        });
                 });
             }
-            // Khusus untuk Model Kelas yang tidak punya 'guru_id' langsung
-            elseif ($model->getTable() === 'kelas') {
-                $builder->whereHas('waliKelas', fn($q) => $q->where('guru_id', $guruId));
+
+            // Isolasi untuk model KelasSiswa
+            elseif ($model instanceof KelasSiswa) {
+                $builder->whereHas('kelas', function ($q) use ($guruId) {
+                    $q->whereHas('waliKelas', fn($query) => $query->where('guru_id', $guruId))
+                        ->orWhereHas('guruMengajar', fn($query) => $query->where('guru_id', $guruId));
+                });
             }
         }
 
@@ -50,8 +68,6 @@ class UserDataScope implements Scope
 
             if (Schema::hasColumn($model->getTable(), 'siswa_id')) {
                 $builder->where('siswa_id', $siswaId);
-            } elseif ($model->getTable() === 'kelas') {
-                $builder->whereHas('kelasSiswa', fn($q) => $q->where('siswa_id', $siswaId));
             }
         }
     }

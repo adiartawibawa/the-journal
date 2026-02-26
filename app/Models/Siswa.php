@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 
 class Siswa extends Model
 {
     use HasUuids;
-    use HasUserScope;
 
     protected $table = 'siswas';
 
@@ -39,7 +39,31 @@ class Siswa extends Model
     // Scope untuk siswa aktif
     public function scopeActive($query)
     {
+        // Filter dasar: status is_active pada tabel siswas
         return $query->where('is_active', true);
+    }
+
+    // Method untuk menghitung total berdasarkan role (untuk Navigation Badge)
+    public static function countSiswaAktifByRole(): int
+    {
+        $user = Auth::user();
+        $query = self::query()->active(); // Memanggil scopeActive di atas
+
+        if ($user && $user->hasRole('teacher')) {
+            $guruId = $user->profileGuru?->id;
+
+            // Filter agar hanya siswa di kelas perwalian yang aktif
+            $query->whereHas('kelasSiswa', function ($q) use ($guruId) {
+                $q->where('status', 'aktif') // Status di kelas tersebut aktif
+                    ->whereHas('kelas.waliKelas', function ($wq) use ($guruId) {
+                        $wq->where('guru_id', $guruId)
+                            ->where('is_active', true); // Wali kelas masih menjabat
+                    })
+                    ->whereHas('tahunAjaran', fn($ta) => $ta->where('is_active', true));
+            });
+        }
+
+        return $query->count();
     }
 
     // Relasi ke model user
